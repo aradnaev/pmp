@@ -27,6 +27,7 @@ logger = logging.getLogger()
 PLATFORM = platform.system()
 logging.info("PLATFORM={}".format(PLATFORM))
 LOCAL_MODE = (PLATFORM == 'Darwin')
+LOCAL_MODE = True
 
 if LOCAL_MODE:
     logger.setLevel(logging.DEBUG)
@@ -266,15 +267,7 @@ USE_TZ = True
 
 SYS_DOMAIN = local_host_url if LOCAL_MODE else prod_host_url
 
-sys_email_settings = {}
-try:
-    with open('sys_email_settings.json') as f:
-        sys_email_settings = json.load(f)
-    logging.info('loaded sys_email_settings.json: {}'.format(
-        sys_email_settings.keys()))
-except Exception as e:
-    logging.warning('Cannot load sys_email_settings due to "{}". \
-Will use default values'.format(e))
+sys_email_settings = custom_settings.get('SYS_EMAIL_SETTINGS')
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST_USER = SYS_EMAIL = sys_email_settings.get('DJANGO_SYS_EMAIL', '')
