@@ -109,7 +109,9 @@ class BasicReport:
         self.entity_display_name = entity_display_name
         self.due_dates_stats = due_dates_stats
         self.sprint_stats = sprint_stats
+        assert isinstance(velocity_report, VelocityReport)
         self.velocity_report = velocity_report
+
         if aux is None:
             self.aux = {}
         else:
