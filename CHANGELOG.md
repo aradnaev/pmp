@@ -1,5 +1,7 @@
 # Changelog
-
+## v1.4.2 (2021-08-25)
+- UI update: due date stats in project card
+- periodic
 ## v1.4.0 (2021-08-11)
 - streamlined email reports
 - velocity plotting improvement (outliers, etc)

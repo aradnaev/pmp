@@ -1,3 +1,5 @@
+import traceback
+
 from .models import Project, TMS, CeleryTask
 from kombu.utils.uuid import uuid
 import datetime
@@ -44,15 +46,15 @@ def celery_task_update(func):
     Updating a job in the database (as CeleryTask) """
     @functools.wraps(func)
     def inner(*args, **kwargs):
-        error_str = ''
+        error_str = None
         try:
             logger.debug('celery_task_update decorator is starting celery function. ')
             result = func(*args, **kwargs)
             result_status = 'DN'
             logger.info('Celery task function executed.')
         except Exception as e:
-            logger.error('Celery task failed due to "{}"'.format(e))
-            error_str = str(e)
+            logger.error('Celery task failed due to "{}". '.format(e))
+            error_str = str(e) + str(traceback.format_exc())
             result_status = 'FL'
             result = None
 
