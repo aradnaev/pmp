@@ -33,7 +33,7 @@ jsonfield==3.1.0
 kombu==5.2.3
 matplotlib==3.3.4
 networkx==2.8.7
-numpy==1.20.1
+numpy==1.22.0
 oauthlib==3.1.0
 packaging==20.9
 pandas==1.2.3
