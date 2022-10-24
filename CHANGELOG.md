@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.8.0 (2022-10-14)
+- added UI for critical path analysis
+- optimized data pull for critical analysis
+- fixed OAuth2 bug ET-928
+- fixed bug ET-907 
+
 ## v1.7.0 (2022-10-14)
 - added interface and API for critical path analysis
 - fixed bugs (ET-923)
