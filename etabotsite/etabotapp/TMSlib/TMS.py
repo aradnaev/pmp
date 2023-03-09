@@ -371,7 +371,7 @@ server_end_point: {}, username_login: {}'.format(
 
     def init_ETApredict(self, projects, **kwargs):
         """Initializes ETApredict object: getting tasks, inferring TMS data schema."""
-        logging.info('init_ETApredict started')
+        logging.info('init_ETApredict started with kwargs {}'.format(kwargs))
         self.ETApredict_obj = ETApredict.ETApredict(TMS_interface=self, logs=self.logs)
         try:
             logging.debug('user_velocity_per_project: {}'.format(

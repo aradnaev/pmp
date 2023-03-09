@@ -70,6 +70,7 @@ class JIRA_wrapper:
         self.logs = logs
         self.jira = self.JIRA_connect(
             server, username, password=password)
+        self.field_id_by_name = {field['name']: field['id'] for field in self.jira.fields()}
 
     def JIRA_connect(
             self,

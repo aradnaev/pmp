@@ -40,7 +40,8 @@ class ETApredict:
     def init_with_Django_models(
             self,
             tms_config,
-            projects):
+            projects,
+            **kwargs):
         if projects is not None and len(projects) > 0:
             self.projects = projects
         else:
