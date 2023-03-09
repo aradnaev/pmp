@@ -1,8 +1,16 @@
 # Changelog
 
+
 ## v1.9.0 (2023-03-08)
 - sprint names and dates in reports
 - misc fixes
+
+## v1.8.0 (2022-10-14)
+- added UI for critical path analysis
+- optimized data pull for critical analysis
+- fixed OAuth2 bug ET-928
+- fixed bug ET-907 
+
 
 ## v1.7.0 (2022-10-14)
 - added interface and API for critical path analysis
