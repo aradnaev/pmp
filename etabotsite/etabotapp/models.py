@@ -39,8 +39,8 @@ class OAuth1Token(models.Model):
     owner = models.ForeignKey('auth.User', related_name='OAuth1Tokens',
                               on_delete=models.CASCADE)    
     name = models.CharField(max_length=40)
-    oauth_token = models.CharField(max_length=2048)
-    oauth_token_secret = models.CharField(max_length=2048)
+    oauth_token = models.CharField(max_length=65536)
+    oauth_token_secret = models.CharField(max_length=65536)
 
     def to_token(self):
         return dict(
@@ -54,7 +54,7 @@ class OAuth2CodeRequest(models.Model):
     owner = models.ForeignKey('auth.User', related_name='OAuth2CodeRequests',
                               on_delete=models.CASCADE)    
     name = models.CharField(max_length=40)
-    state = models.CharField(max_length=200)
+    state = models.CharField(max_length=65536)
     timestamp = models.DateTimeField(null=True)
 
 
@@ -64,8 +64,8 @@ class OAuth2Token(models.Model):
                               on_delete=models.CASCADE)    
     name = models.CharField(max_length=40)
     token_type = models.CharField(max_length=20)
-    access_token = models.CharField(max_length=2048)
-    refresh_token = models.CharField(max_length=2048, null=True)
+    access_token = models.CharField(max_length=65536)
+    refresh_token = models.CharField(max_length=65536, null=True)
     expires_at = models.PositiveIntegerField(null=True)
 
     def is_expired(self):

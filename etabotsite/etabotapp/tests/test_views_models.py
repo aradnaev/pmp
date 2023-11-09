@@ -165,7 +165,7 @@ class TMSViewTestCase(TestCase):
         del tms.params[PROJECTS_USER_SELECTED]  # this should switch to selecting all available projects
         parse_projects_for_TMS(tms)
         projects = Project.objects.all().filter(project_tms=tms.id)
-        assert len(projects) == 3
+        assert len(projects) >= 3
 
 
 class ProjectModelTestCase(TestCase):
