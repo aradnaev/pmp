@@ -1,8 +1,19 @@
 # Changelog
 
-## v1.7.1 (2023-11-10)
+
+## v1.9.1 (2023-11-10)
 - JIRA token size increase
 - dependencies updates for security enhancements
+
+## v1.9.0 (2023-03-08)
+- sprint names and dates in reports
+- misc fixes
+
+## v1.8.0 (2022-10-14)
+- added UI for critical path analysis
+- optimized data pull for critical analysis
+- fixed OAuth2 bug ET-928
+- fixed bug ET-907 
 
 
 ## v1.7.0 (2022-10-14)
