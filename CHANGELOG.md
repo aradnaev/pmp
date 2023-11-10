@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.7.1 (2023-11-10)
+- JIRA token size increase
+- dependencies updates for security enhancements
+
+
 ## v1.7.0 (2022-10-14)
 - added interface and API for critical path analysis
 - fixed bugs (ET-923)
