@@ -17,7 +17,7 @@ from .models import TMS, Project
 from .models import oauth
 from .permissions import IsOwnerOrReadOnly, IsOwner
 from etabotapp.TMSlib.JIRA_API import JIRA_wrapper
-# import etabotapp.TMSlib.TMS as TMSlib
+import etabotapp.TMSlib.TMS as TMSlib
 # import etabotapp.TMSlib.data_conversion as dc
 from .user_activation import ActivationProcessor, ResponseCode
 import etabotapp.email_toolbox as email_toolbox
@@ -485,6 +485,49 @@ class CriticalPathsView(APIView):
 
         return Response(
             data=result.task_id,
+            status=status.HTTP_200_OK)
+
+
+class CriticalPathsViewJIRAplugin(APIView):
+
+    def post(self, request):
+        """Generate critical path for a given JQL and explicit list of JIRA tasks rather than TMS data source.
+
+        """
+        logger.info('CriticalPathsViewJIRAplugin started.')
+        params = {}
+        post_data = {}
+        if request.body:
+            logger.debug('request.body: {}'.format(request.body))
+            post_data = json.loads(request.body)
+            params = post_data.get('params', {})
+            logger.debug('CriticalPathView call global_params: {}'.format(params))
+        if 'final_nodes' in post_data:
+            final_nodes = post_data['final_nodes']
+            logger.debug(f'got final_nodes: {final_nodes}')
+        else:
+            return Response(
+                {
+                    "error": "No final_nodes passed."
+                },
+                status=status.HTTP_400_BAD_REQUEST)
+        if 'tasks' in post_data:
+            tasks = post_data['tasks']
+        else:
+            return Response(
+                {
+                    "error": "No tasks passed."
+                },
+                status=status.HTTP_400_BAD_REQUEST)
+
+        start_date_field_name = 'start_date_field_name' # todo: parse from body
+        eta_date_field_name = 'eta_date_field_name' # todo: parse from body
+        # cpg, critical_paths = TMSlib.cp.generate_critical_paths_report_for_tasks(
+        #     tasks=tasks, start_date_field_name=start_date_field_name,
+        #     eta_date_field_name=eta_date_field_name, final_nodes=final_nodes, params=params)
+
+        return Response(
+            data='\n'.join(final_nodes),
             status=status.HTTP_200_OK)
 
 
