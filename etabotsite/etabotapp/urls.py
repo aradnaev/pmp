@@ -4,7 +4,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 # from rest_framework_expiring_authtoken import views
 from .views import (
     UserViewSet, ProjectViewSet, TMSViewSet, EstimateTMSView,
-    CeleryTaskStatusView, CriticalPathsView)
+    CeleryTaskStatusView, CriticalPathsView, CriticalPathsViewJIRAplugin)
 from .views import UserCommunicationView
 from .views import ParseTMSprojects
 from .views import index
@@ -35,6 +35,7 @@ urlpatterns += [
     url(r'^api/parse_projects/', ParseTMSprojects.as_view(), name="estimate_tms"),
     url(r'^api/atlassian_oauth', AtlassianOAuth.as_view(), name='atlassian_oauth'),
     url(r'^api/user_communication/', UserCommunicationView.as_view(), name="user_communication"),
+    url(r'^api/critical_paths_plugin', CriticalPathsViewJIRAplugin.as_view(), name="critical_paths_plugin"),
     url(r'^api/critical_paths', CriticalPathsView.as_view(), name="critical_paths"),
     url(r'^api/verification/activate/', activate, name='activate'),
     url(r'^api/verification/send-email/', email_verification, name='email_verification'),
