@@ -1,3 +1,5 @@
+from dataclasses import is_dataclass, asdict
+
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.http import HttpResponse
@@ -33,6 +35,9 @@ import datetime
 import pytz
 import hashlib
 import etabotapp.TMSlib.Atlassian_API as Atlassian_API
+import networkx as nx
+import pandas as pd
+import numpy as np
 
 # import oauth_support
 
@@ -522,12 +527,34 @@ class CriticalPathsViewJIRAplugin(APIView):
 
         start_date_field_name = 'start_date_field_name' # todo: parse from body
         eta_date_field_name = 'eta_date_field_name' # todo: parse from body
-        # cpg, critical_paths = TMSlib.cp.generate_critical_paths_report_for_tasks(
-        #     tasks=tasks, start_date_field_name=start_date_field_name,
-        #     eta_date_field_name=eta_date_field_name, final_nodes=final_nodes, params=params)
+        cpg, critical_paths = TMSlib.cp.generate_critical_paths_report_for_tasks(
+            tasks=tasks, start_date_field_name=start_date_field_name,
+            eta_date_field_name=eta_date_field_name, final_nodes=final_nodes, params=params)
+
+        critical_paths["cpg_data"] = {
+            "slack_tolerance_for_crit_path_s": cpg.slack_tolerance_for_crit_path_s,
+            "action_items_per_assignee": cpg.action_items_per_assignee,
+            "action_items_for_pm": cpg.action_items_for_pm,
+        }
+
+        def json_serial(obj):
+            if is_dataclass(obj):
+                return asdict(obj)
+            elif isinstance(obj, datetime.datetime):
+                return obj.isoformat()
+            elif isinstance(obj, datetime.timedelta):
+                return obj.total_seconds()
+            elif isinstance(obj, pd.DataFrame):
+                return obj.to_dict(orient="records")
+            elif isinstance(obj, nx.Graph):
+                return ""  # TODO: figure out what to return
+            raise TypeError(f"Type {type(obj)} not serializable")
+
+        # using replace is hackish, but could not figure out how to do robustly in json_serial
+        json_response = json.dumps(critical_paths, indent=4, default=json_serial).replace('NaN', 'null')
 
         return Response(
-            data='\n'.join(final_nodes),
+            data='\n'.join(json_response),
             status=status.HTTP_200_OK)
 
 
