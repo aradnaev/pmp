@@ -37,7 +37,6 @@ import hashlib
 import etabotapp.TMSlib.Atlassian_API as Atlassian_API
 import networkx as nx
 import pandas as pd
-import numpy as np
 
 # import oauth_support
 
@@ -547,7 +546,7 @@ class CriticalPathsViewJIRAplugin(APIView):
             elif isinstance(obj, pd.DataFrame):
                 return obj.to_dict(orient="records")
             elif isinstance(obj, nx.Graph):
-                return ""  # TODO: figure out what to return
+                return None
             raise TypeError(f"Type {type(obj)} not serializable")
 
         # using replace is hackish, but could not figure out how to do robustly in json_serial
