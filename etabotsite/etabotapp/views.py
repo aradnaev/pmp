@@ -553,7 +553,7 @@ class CriticalPathsViewJIRAplugin(APIView):
         json_response = json.dumps(critical_paths, indent=4, default=json_serial).replace('NaN', 'null')
 
         return Response(
-            data='\n'.join(json_response),
+            data=json_response,
             status=status.HTTP_200_OK)
 
 
