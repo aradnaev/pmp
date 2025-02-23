@@ -542,8 +542,9 @@ class CriticalPathsViewJIRAplugin(APIView):
                 start_date = issue.get_field(start_date_field_name)
                 if start_date is None:
                     logger.warning(f'start_date is None for issue {issue.key}.'
-                                   f'json {start_date_field_name}: {issue_dict["fields"].get(start_date_field_name)}'
-                                   f'issue fields {issue.fields}')
+                                   f'dict {start_date_field_name}: {issue_dict["fields"].get(start_date_field_name)}.'
+                                   f'issue fields {issue.fields}.'
+                                   f'issue_dict {issue_dict}')
             except Exception as e:
                 return Response(
                     {
