@@ -527,7 +527,7 @@ class CriticalPathsViewJIRAplugin(APIView):
             start_date_field_name = post_data['start_date_field_name']
 
         if 'issues' in post_data:
-            issues_json = post_data['issues']
+            issues_dict = post_data['issues']
         else:
             return Response(
                 {
@@ -535,20 +535,19 @@ class CriticalPathsViewJIRAplugin(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST)
         tasks = []
-        for issue_json in issues_json:
+        for issue_dict in issues_dict:
             try:
-                issue = create_jira_issue_from_json(issue_json)
+                issue = create_jira_issue_from_json(issue_dict)
                 tasks.append(issue)
                 start_date = issue.get_field(start_date_field_name)
                 if start_date is None:
-                    issue_dict = json.loads(issue_json)
                     logger.warning(f'start_date is None for issue {issue.key}.'
                                    f'json {start_date_field_name}: {issue_dict["fields"].get(start_date_field_name)}'
                                    f'issue fields {issue.fields}')
             except Exception as e:
                 return Response(
                     {
-                        "error": f"Cannot parse this issue due to {e}: {issue_json}."
+                        "error": f"Cannot parse this issue due to {e}: {issue_dict}."
                     },
                     status=status.HTTP_400_BAD_REQUEST)
 
