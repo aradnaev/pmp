@@ -553,15 +553,9 @@ class CriticalPathsViewJIRAplugin(APIView):
                     status=status.HTTP_400_BAD_REQUEST)
 
         eta_date_field_name = post_data.get('eta_date_field_name')
-
-        logger.info('generate_critical_paths_report_for_tasks started.')
-        cpg = TMSlib.cp.CriticalPathGenerator(
-            tasks,
-            start_date_field_name=start_date_field_name,
-            eta_date_field_name=eta_date_field_name,
-            slack_tolerance_for_crit_path_s=24 * 3600 * params.get('slack_tolerance_for_crit_path_days', 0.))
-        critical_paths_for_nodes = cpg.generate_critical_paths_for_nodes(final_nodes)
-        logger.info('generate_critical_paths_report_for_tasks finished')
+        cpg, critical_paths_for_nodes = TMSlib.cp.generate_critical_paths_report_for_tasks(
+            tasks=tasks, start_date_field_name=start_date_field_name, eta_date_field_name=eta_date_field_name,
+            final_nodes=final_nodes, params=params)
 
         critical_paths_for_nodes["cpg_data"] = {
             "slack_tolerance_for_crit_path_s": cpg.slack_tolerance_for_crit_path_s,
