@@ -10,6 +10,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from jira_issue import create_jira_issue_from_json
 from .celery_tracking import send_celery_task_with_tracking
 from etabotapp.TMSlib.JIRA_API import update_available_projects_for_TMS
 from .serializers import UserSerializer, ProjectSerializer, TMSSerializer
@@ -515,22 +516,47 @@ class CriticalPathsViewJIRAplugin(APIView):
                     "error": "No final_nodes passed."
                 },
                 status=status.HTTP_400_BAD_REQUEST)
-        if 'tasks' in post_data:
-            tasks = post_data['tasks']
+
+        if 'start_date_field_name' not in post_data:
+            return Response(
+                {
+                    "error": "No start_date_field_name passed."
+                },
+                status=status.HTTP_400_BAD_REQUEST)
+        else:
+            start_date_field_name = post_data['start_date_field_name']
+
+        if 'issues' in post_data:
+            issues = post_data['issues']
         else:
             return Response(
                 {
-                    "error": "No tasks passed."
+                    "error": "No tasks aka issues passed."
                 },
                 status=status.HTTP_400_BAD_REQUEST)
+        tasks = []
+        for issue in post_data['issues']:
+            try:
+                tasks.append(create_jira_issue_from_json(issue))
+            except Exception as e:
+                return Response(
+                    {
+                        "error": f"Cannot parse this issue due to {e}: {issue}."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
 
-        start_date_field_name = 'start_date_field_name' # todo: parse from body
-        eta_date_field_name = 'eta_date_field_name' # todo: parse from body
-        cpg, critical_paths = TMSlib.cp.generate_critical_paths_report_for_tasks(
-            tasks=tasks, start_date_field_name=start_date_field_name,
-            eta_date_field_name=eta_date_field_name, final_nodes=final_nodes, params=params)
+        eta_date_field_name = post_data.get('eta_date_field_name')
 
-        critical_paths["cpg_data"] = {
+        logger.info('generate_critical_paths_report_for_tasks started.')
+        cpg = TMSlib.cp.CriticalPathGenerator(
+            tasks,
+            start_date_field_name=start_date_field_name,
+            eta_date_field_name=eta_date_field_name,
+            slack_tolerance_for_crit_path_s=24 * 3600 * params.get('slack_tolerance_for_crit_path_days', 0.))
+        critical_paths_for_nodes = cpg.generate_critical_paths_for_nodes(final_nodes)
+        logger.info('generate_critical_paths_report_for_tasks finished')
+
+        critical_paths_for_nodes["cpg_data"] = {
             "slack_tolerance_for_crit_path_s": cpg.slack_tolerance_for_crit_path_s,
             "action_items_per_assignee": cpg.action_items_per_assignee,
             "action_items_for_pm": cpg.action_items_for_pm,
