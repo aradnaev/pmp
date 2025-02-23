@@ -535,7 +535,7 @@ class CriticalPathsViewJIRAplugin(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST)
         tasks = []
-        for issue in post_data['issues']:
+        for issue in issues:
             try:
                 tasks.append(create_jira_issue_from_json(issue))
             except Exception as e:
@@ -576,7 +576,7 @@ class CriticalPathsViewJIRAplugin(APIView):
             raise TypeError(f"Type {type(obj)} not serializable")
 
         # using replace is hackish, but could not figure out how to do robustly in json_serial
-        json_response = json.dumps(critical_paths, indent=4, default=json_serial).replace('NaN', 'null')
+        json_response = json.dumps(critical_paths_for_nodes, indent=4, default=json_serial).replace('NaN', 'null')
 
         return Response(
             data=json_response,
