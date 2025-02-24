@@ -78,7 +78,7 @@ def generate_critical_path(
     tms = get_tms_by_id(tms_id)
     logs = []
     tms_wrapper = TMSlib.TMSWrapper(tms, logs=logs)
-    email_msg, _ = TMSlib.cp.generate_critical_paths_email_report_for_tms(
+    email_msg = TMSlib.cp.generate_critical_paths_email_report_for_tms(
         tms_wrapper=tms_wrapper, final_nodes=final_nodes, params=params)
     email_reports.EmailReportProcess.send_email(email_msg)
     logging.info('generate_critical_path finished task_id = {}'.format(task_id))
