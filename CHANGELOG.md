@@ -1,6 +1,10 @@
 # Changelog
 
 
+## v1.9.1 (2023-11-10)
+- JIRA token size increase
+- dependencies updates for security enhancements
+
 ## v1.9.0 (2023-03-08)
 - sprint names and dates in reports
 - misc fixes
