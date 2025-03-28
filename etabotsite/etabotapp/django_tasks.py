@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 import logging
 import etabotapp.eta_tasks as eta_tasks
 import datetime
-from typing import Union, List
+from typing import Union, List, Optional
 from .celery_tracking import *
 from etabotapp import email_toolbox, email_reports
 import etabotapp.TMSlib.TMS as TMSlib
@@ -82,6 +82,21 @@ def generate_critical_path(
         tms_wrapper=tms_wrapper, final_nodes=final_nodes, params=params)
     email_reports.EmailReportProcess.send_email(email_msg)
     logging.info('generate_critical_path finished task_id = {}'.format(task_id))
+
+@shared_task
+@celery_task_update
+def generate_critical_path_jira(
+        tasks: List,
+        start_date_field_name: str,
+        eta_date_field_name: Optional[str],
+        final_nodes: List[str],
+        params: dict,
+):
+    """Generate critical path and send email report."""
+    cpg, critical_paths_for_nodes = TMSlib.cp.generate_critical_paths_report_for_tasks(
+        tasks=tasks, start_date_field_name=start_date_field_name, eta_date_field_name=eta_date_field_name,
+        final_nodes=final_nodes, params=params)
+    return cpg, critical_paths_for_nodes  # TODO: figure out if this is the correct way to return data
 
 
 @shared_task
