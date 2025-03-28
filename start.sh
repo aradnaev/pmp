@@ -27,4 +27,5 @@ else
       --workers $NUM_WORKERS \
       --worker-class gevent \
       --timeout $TIMEOUT
+      --limit-request-field-size 10485760
 fi
