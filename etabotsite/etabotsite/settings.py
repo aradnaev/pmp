@@ -419,7 +419,7 @@ if TEST_TMS_DATA['username'] == '':
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440 * 4  # i.e. 10 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
 
 LANGUAGE_CODE = 'en-us'
 
