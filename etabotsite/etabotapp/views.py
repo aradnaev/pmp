@@ -231,6 +231,7 @@ Please update your login credentials.'
                 response_message = 'unknown error. If the issue persists, \
 please contact us at hello@etabot.ai.'
             logger.error(response_message)
+            logger.error(e)
             return Response(
                 response_message,
                 status=status.HTTP_400_BAD_REQUEST)

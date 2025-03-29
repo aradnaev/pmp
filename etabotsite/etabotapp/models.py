@@ -14,7 +14,7 @@ import etabotapp.TMSlib.Atlassian_API as Atlassian_API
 print('loaded TMSlib data_conversion, Atlassian_API ')
 
 from django.db import models
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.db.models.signals import post_save, pre_save
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token

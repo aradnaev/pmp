@@ -23,7 +23,7 @@ def celery_task_record_creator(name, owner):
         owner=owner,
         meta_data=None
     )
-
+    logger.info('celery_task_record_creator finished for "{}" with owner "{}"'.format(name, owner))
     return celery_task_record
 
 
