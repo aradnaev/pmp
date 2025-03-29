@@ -231,6 +231,7 @@ Please update your login credentials.'
                 response_message = 'unknown error. If the issue persists, \
 please contact us at hello@etabot.ai.'
             logger.error(response_message)
+            logger.error(e)
             return Response(
                 response_message,
                 status=status.HTTP_400_BAD_REQUEST)
@@ -258,11 +259,12 @@ class AtlassianOAuth(APIView):
         timestamp = pytz.utc.localize(datetime.datetime.utcnow())
         state = hashlib.sha256(('{}{}'.format(request.user, timestamp)).encode('utf-8')).hexdigest()
         logger.debug('state={}'.format(state))
+        logger.info('oauth.atlassian.authorize_redirect')
         resp = oauth.atlassian.authorize_redirect(
             request, atlassian_redirect_uri,
             state=state,
             scope=scope)
-
+        logger.info('oauth.atlassian.authorize_redirect response received')
         logger.debug(resp)
         logger.debug(vars(resp))
         oa2cr = OAuth2CodeRequest(
@@ -271,7 +273,7 @@ class AtlassianOAuth(APIView):
             timestamp=timestamp,
             state=state)
         oa2cr.save()
-
+        logger.info('AtlassianOAuth GET finished')
         return Response(
             json.dumps({'redirect_url': resp.url}),
             status=status.HTTP_200_OK)
@@ -293,9 +295,9 @@ class AtlassianOAuthCallback(APIView):
         state = request.GET.get('state')
         logger.debug('state={}'.format(state))
         try:
-            token = oauth.atlassian.authorize_access_token(
-                request, redirect_uri=atlassian_redirect_uri)
-
+            logger.info('getting token = oauth.atlassian.authorize_access_token(request)')
+            token = oauth.atlassian.authorize_access_token(request)
+            logger.info('got token')
             logger.debug('token={}'.format(token))
         except Exception as e:
             logger.error('cannot get token due to: "{}"'.format(e))

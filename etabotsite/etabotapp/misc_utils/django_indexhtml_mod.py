@@ -41,7 +41,7 @@ def html_to_django_template(
 
     s = re.sub(pattern, r'\1{}\2{}\3'.format(static_prefix, static_suffix), s)
 
-    header = '{% load staticfiles %}\n'
+    header = '{% load static %}\n'
     logging.info('prepending header: {}'.format(header))
     s = header + s
 

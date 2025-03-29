@@ -38,6 +38,6 @@ search="href=\"styles."
 replace="href=\"{% static 'ng_app_js/styles."
 sed "s|${search}|${replace}|g" /usr/src/app/server/etabotsite/templates/index.html > /usr/src/app/server/etabotsite/templates/tmp.html
 
-{ echo -n '{% load staticfiles %}'; cat /usr/src/app/server/etabotsite/templates/tmp.html; } > /usr/src/app/server/etabotsite/templates/index.html
+{ echo -n '{% load static %}'; cat /usr/src/app/server/etabotsite/templates/tmp.html; } > /usr/src/app/server/etabotsite/templates/index.html
 #add="\{\% load staticfiles \%\}"
 #sed "1s|^|${add}|g" /usr/src/app/server/etabotsite/templates/tmp.html /usr/src/app/server/etabotsite/templates/index.html

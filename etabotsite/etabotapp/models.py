@@ -14,7 +14,7 @@ import etabotapp.TMSlib.Atlassian_API as Atlassian_API
 print('loaded TMSlib data_conversion, Atlassian_API ')
 
 from django.db import models
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.db.models.signals import post_save, pre_save
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
@@ -185,7 +185,7 @@ class TMS(models.Model):
         logger.debug('before TMS refresh from db vars self.oauth2_token: {}'.format(vars(self.oauth2_token)))
         logger.debug('before TMS refresh from db token vars: {}'.format(vars(token)))
 
-        logger.debug('refreshing TMS from db')
+        logger.info('refreshing TMS from db')
         self.refresh_from_db()
         logger.debug('after refreshing from db self.oauth2_token: {}'.format(self.oauth2_token))
         logger.debug('after refreshing from db vars self.oauth2_token: {}'.format(vars(self.oauth2_token)))
@@ -194,6 +194,7 @@ class TMS(models.Model):
         logger.debug('reassigning token to self.oauth2_token...')
         token = self.oauth2_token
         logger.debug('token vars: {}'.format(vars(token)))
+        logger.info('get_fresh_token finished.')
         return token
 
 
@@ -359,6 +360,6 @@ atlassian_redirect_uri = PROD_HOST_URL + '/atlassian_callback'
 logger.debug('atlassian_redirect_uri: "{}"'.format(atlassian_redirect_uri))
 
 oauth = OAuth(fetch_token=fetch_oauth_token, update_token=update_oauth_token)
-oauth.register(name='atlassian')
+oauth.register(name='atlassian', redirect_uri=atlassian_redirect_uri)
 logger.debug('oauth registered: {}'.format(oauth.atlassian))
 logger.info('models import finished.')

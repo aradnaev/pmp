@@ -511,3 +511,4 @@ logger.debug('setting.py is done')
 logger.error("This is a test of error notification. LOCAL_MODE={}, HOST_URL={}, HOST_NAME={}".format(
     LOCAL_MODE, HOST_URL, HOST_NAME
 ))
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
