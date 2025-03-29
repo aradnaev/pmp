@@ -294,8 +294,7 @@ class AtlassianOAuthCallback(APIView):
         state = request.GET.get('state')
         logger.debug('state={}'.format(state))
         try:
-            token = oauth.atlassian.authorize_access_token(
-                request, redirect_uri=atlassian_redirect_uri)
+            token = oauth.atlassian.authorize_access_token(request)
 
             logger.debug('token={}'.format(token))
         except Exception as e:
