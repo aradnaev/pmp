@@ -112,12 +112,14 @@ class JIRA_wrapper:
                         logger2.info('getting token from TMSconfig.')
                         token = self.TMSconfig.get_fresh_token()
                         logger2.info('got fresh token from TMSconfig.')
+                        assert token.access_token is not None
                         options['headers'] = {
                             'Authorization': 'Bearer {}'.format(token.access_token),
                             'Accept': 'application/json',
                             'Content-Type': 'application/json'}
                         logger2.debug('connecting with options: {}'.format(options))
                         jira = JIRA(options=options)
+                        logger2.info('got jira object. Attempting to search for issues assigned to the user.')
                         search_string = 'assignee=currentUser() ORDER BY Rank ASC'
                         logger2.debug('test jira query with search string: {}'.format(search_string))
                         res = jira.search_issues(search_string)
@@ -127,9 +129,9 @@ class JIRA_wrapper:
                     target_list.append(jira)
                 except Exception as e:
                     error_message = str(e)
-                    logger2.debug(error_message)
+                    logger2.error(error_message)
                     errors_dict['error_message'] = error_message
-            logger.debug('starting get_jira_object thread')
+            logger.info('starting get_jira_object thread')
             auth_thread = threading.Thread(
                 target=get_jira_object, args=(jira_place, errors_place))
             auth_thread.start()
