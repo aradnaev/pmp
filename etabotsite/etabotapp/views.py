@@ -553,13 +553,11 @@ class CriticalPathsViewJIRAplugin(APIView):
                     status=status.HTTP_400_BAD_REQUEST)
 
         eta_date_field_name = post_data.get('eta_date_field_name')
-        # TODO: replace with celery call
+
         result = send_celery_task_with_tracking(
             'etabotapp.django_tasks.generate_critical_path_jira',
             (tasks, start_date_field_name, eta_date_field_name, final_nodes, params), owner=None)
 
-        # TODO: figure out what args to pass
-        # TODO: figure out correct way to get results
         cpg, critical_paths_for_nodes = result.get()
 
         critical_paths_for_nodes["cpg_data"] = {

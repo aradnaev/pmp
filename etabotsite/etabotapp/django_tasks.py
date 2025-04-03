@@ -96,7 +96,7 @@ def generate_critical_path_jira(
     cpg, critical_paths_for_nodes = TMSlib.cp.generate_critical_paths_report_for_tasks(
         tasks=tasks, start_date_field_name=start_date_field_name, eta_date_field_name=eta_date_field_name,
         final_nodes=final_nodes, params=params)
-    return cpg, critical_paths_for_nodes  # TODO: figure out if this is the correct way to return data
+    return cpg, critical_paths_for_nodes
 
 
 @shared_task
