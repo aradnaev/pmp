@@ -555,9 +555,12 @@ class CriticalPathsViewJIRAplugin(APIView):
                     status=status.HTTP_400_BAD_REQUEST)
 
         eta_date_field_name = post_data.get('eta_date_field_name')
-        cpg, critical_paths_for_nodes = TMSlib.cp.generate_critical_paths_report_for_tasks(
-            tasks=tasks, start_date_field_name=start_date_field_name, eta_date_field_name=eta_date_field_name,
-            final_nodes=final_nodes, params=params)
+
+        result = send_celery_task_with_tracking(
+            'etabotapp.django_tasks.generate_critical_path_jira',
+            (tasks, start_date_field_name, eta_date_field_name, final_nodes, params), owner=None)
+
+        cpg, critical_paths_for_nodes = result.get()
 
         critical_paths_for_nodes["cpg_data"] = {
             "slack_tolerance_for_crit_path_s": cpg.slack_tolerance_for_crit_path_s,
