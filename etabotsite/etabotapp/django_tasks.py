@@ -14,6 +14,8 @@ from etabotapp import email_toolbox, email_reports
 import etabotapp.TMSlib.TMS as TMSlib
 from jira_issue import create_jira_issue_from_json
 import json
+from dataclasses import is_dataclass, asdict
+import pandas as pd
 
 celery = clry.Celery()
 celery.config_from_object('django.conf:settings')
@@ -93,8 +95,10 @@ def generate_critical_path_jira(
         eta_date_field_name: Optional[str],
         final_nodes: List[str],
         params: dict,
+        task_id=None
 ):
     """Generate critical path and send email report."""
+    logging.info('generate_critical_path_jira started task_id = {}'.format(task_id))
     tasks = []
     for issue_dict in issues_dict:
         try:
@@ -133,7 +137,9 @@ def generate_critical_path_jira(
         raise TypeError(f"Type {type(obj)} not serializable")
 
     # using replace is hackish, but could not figure out how to do robustly in json_serial
-    return json.dumps(critical_paths_for_nodes, indent=4, default=json_serial).replace('NaN', 'null')
+    result = json.dumps(critical_paths_for_nodes, indent=4, default=json_serial).replace('NaN', 'null')
+    logging.info('generate_critical_path_jira started task_id = {}'.format(task_id))
+    return result
 
 
 @shared_task
