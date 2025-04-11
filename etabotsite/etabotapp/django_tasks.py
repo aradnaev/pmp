@@ -13,6 +13,7 @@ from .celery_tracking import *
 from etabotapp import email_toolbox, email_reports
 import etabotapp.TMSlib.TMS as TMSlib
 from jira_issue import create_jira_issue_from_json
+import json
 
 celery = clry.Celery()
 celery.config_from_object('django.conf:settings')
@@ -111,7 +112,28 @@ def generate_critical_path_jira(
     cpg, critical_paths_for_nodes = TMSlib.cp.generate_critical_paths_report_for_tasks(
         tasks=tasks, start_date_field_name=start_date_field_name, eta_date_field_name=eta_date_field_name,
         final_nodes=final_nodes, params=params)
-    return cpg, critical_paths_for_nodes
+
+    critical_paths_for_nodes["cpg_data"] = {
+        "slack_tolerance_for_crit_path_s": cpg.slack_tolerance_for_crit_path_s,
+        "action_items_per_assignee": cpg.action_items_per_assignee,
+        "action_items_for_pm": cpg.action_items_for_pm,
+    }
+
+    def json_serial(obj):
+        if is_dataclass(obj):
+            return asdict(obj)
+        elif isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        elif isinstance(obj, datetime.timedelta):
+            return obj.total_seconds()
+        elif isinstance(obj, pd.DataFrame):
+            return obj.to_dict(orient="records")
+        elif isinstance(obj, nx.Graph):
+            return None
+        raise TypeError(f"Type {type(obj)} not serializable")
+
+    # using replace is hackish, but could not figure out how to do robustly in json_serial
+    return json.dumps(critical_paths_for_nodes, indent=4, default=json_serial).replace('NaN', 'null')
 
 
 @shared_task
