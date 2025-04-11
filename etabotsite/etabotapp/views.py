@@ -10,7 +10,6 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from jira_issue import create_jira_issue_from_json
 from .celery_tracking import send_celery_task_with_tracking
 from etabotapp.TMSlib.JIRA_API import update_available_projects_for_TMS
 from .serializers import UserSerializer, ProjectSerializer, TMSSerializer
@@ -64,6 +63,7 @@ print('DEBUG INFO WARNING levels test done')
 
 celery = clry.Celery()
 celery.config_from_object('django.conf:settings')
+
 
 
 @ensure_csrf_cookie
@@ -534,31 +534,21 @@ class CriticalPathsViewJIRAplugin(APIView):
                     "error": "No tasks aka issues passed."
                 },
                 status=status.HTTP_400_BAD_REQUEST)
-        tasks = []
-        for issue_dict in issues_dict:
-            try:
-                issue = create_jira_issue_from_json(issue_dict)
-                tasks.append(issue)
-                start_date = issue.get_field(start_date_field_name)
-                if start_date is None:
-                    logger.warning(f'start_date is None for issue {issue.key}.'
-                                   f'dict {start_date_field_name}: {issue_dict["fields"].get(start_date_field_name)}.'
-                                   f'issue fields {issue.fields}.'
-                                   f'issue_dict {issue_dict}')
-            except Exception as e:
-                return Response(
-                    {
-                        "error": f"Cannot parse this issue due to {e}: {issue_dict}."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST)
 
         eta_date_field_name = post_data.get('eta_date_field_name')
 
-        result = send_celery_task_with_tracking(
-            'etabotapp.django_tasks.generate_critical_path_jira',
-            (tasks, start_date_field_name, eta_date_field_name, final_nodes, params), owner=self.request.user)
+        try:
+            result = send_celery_task_with_tracking(
+                'etabotapp.django_tasks.generate_critical_path_jira',
+                (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params), owner=self.request.user)
 
-        cpg, critical_paths_for_nodes = result.get()
+            cpg, critical_paths_for_nodes = result.get()
+        except Exception as e:
+            Response(
+                {
+                    "error": str(e),
+                },
+                status=status.HTTP_400_BAD_REQUEST)
 
         critical_paths_for_nodes["cpg_data"] = {
             "slack_tolerance_for_crit_path_s": cpg.slack_tolerance_for_crit_path_s,
