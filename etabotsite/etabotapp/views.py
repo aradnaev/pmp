@@ -35,8 +35,7 @@ import datetime
 import pytz
 import hashlib
 import etabotapp.TMSlib.Atlassian_API as Atlassian_API
-import networkx as nx
-import pandas as pd
+
 
 # import oauth_support
 

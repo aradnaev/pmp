@@ -16,6 +16,8 @@ from jira_issue import create_jira_issue_from_json
 import json
 from dataclasses import is_dataclass, asdict
 import pandas as pd
+import networkx as nx
+
 
 celery = clry.Celery()
 celery.config_from_object('django.conf:settings')
