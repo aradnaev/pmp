@@ -1,4 +1,4 @@
-from dataclasses import is_dataclass, asdict
+
 
 from django.shortcuts import render
 from django.contrib.auth.models import User
@@ -10,7 +10,6 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from jira_issue import create_jira_issue_from_json
 from .celery_tracking import send_celery_task_with_tracking
 from etabotapp.TMSlib.JIRA_API import update_available_projects_for_TMS
 from .serializers import UserSerializer, ProjectSerializer, TMSSerializer
@@ -36,8 +35,7 @@ import datetime
 import pytz
 import hashlib
 import etabotapp.TMSlib.Atlassian_API as Atlassian_API
-import networkx as nx
-import pandas as pd
+
 
 # import oauth_support
 
@@ -64,6 +62,7 @@ print('DEBUG INFO WARNING levels test done')
 
 celery = clry.Celery()
 celery.config_from_object('django.conf:settings')
+
 
 
 @ensure_csrf_cookie
@@ -536,54 +535,24 @@ class CriticalPathsViewJIRAplugin(APIView):
                     "error": "No tasks aka issues passed."
                 },
                 status=status.HTTP_400_BAD_REQUEST)
-        tasks = []
-        for issue_dict in issues_dict:
-            try:
-                issue = create_jira_issue_from_json(issue_dict)
-                tasks.append(issue)
-                start_date = issue.get_field(start_date_field_name)
-                if start_date is None:
-                    logger.warning(f'start_date is None for issue {issue.key}.'
-                                   f'dict {start_date_field_name}: {issue_dict["fields"].get(start_date_field_name)}.'
-                                   f'issue fields {issue.fields}.'
-                                   f'issue_dict {issue_dict}')
-            except Exception as e:
-                return Response(
-                    {
-                        "error": f"Cannot parse this issue due to {e}: {issue_dict}."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST)
 
         eta_date_field_name = post_data.get('eta_date_field_name')
-        cpg, critical_paths_for_nodes = TMSlib.cp.generate_critical_paths_report_for_tasks(
-            tasks=tasks, start_date_field_name=start_date_field_name, eta_date_field_name=eta_date_field_name,
-            final_nodes=final_nodes, params=params)
 
-        critical_paths_for_nodes["cpg_data"] = {
-            "slack_tolerance_for_crit_path_s": cpg.slack_tolerance_for_crit_path_s,
-            "action_items_per_assignee": cpg.action_items_per_assignee,
-            "action_items_for_pm": cpg.action_items_for_pm,
-        }
+        try:
+            result = send_celery_task_with_tracking(
+                'etabotapp.django_tasks.generate_critical_path_jira',
+                (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params), owner=self.request.user)
 
-        def json_serial(obj):
-            if is_dataclass(obj):
-                return asdict(obj)
-            elif isinstance(obj, datetime.datetime):
-                return obj.isoformat()
-            elif isinstance(obj, datetime.timedelta):
-                return obj.total_seconds()
-            elif isinstance(obj, pd.DataFrame):
-                return obj.to_dict(orient="records")
-            elif isinstance(obj, nx.Graph):
-                return None
-            raise TypeError(f"Type {type(obj)} not serializable")
-
-        # using replace is hackish, but could not figure out how to do robustly in json_serial
-        json_response = json.dumps(critical_paths_for_nodes, indent=4, default=json_serial).replace('NaN', 'null')
-
-        return Response(
-            data=json_response,
-            status=status.HTTP_200_OK)
+            json_response = result.get()
+            return Response(
+                data=json_response,
+                status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {
+                    "error": str(e),
+                },
+                status=status.HTTP_400_BAD_REQUEST)
 
 
 class EstimateTMSView(APIView):

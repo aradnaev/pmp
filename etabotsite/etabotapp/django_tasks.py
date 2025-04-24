@@ -8,10 +8,16 @@ from django.contrib.auth.models import User
 import logging
 import etabotapp.eta_tasks as eta_tasks
 import datetime
-from typing import Union, List
+from typing import Union, List, Optional, Dict
 from .celery_tracking import *
 from etabotapp import email_toolbox, email_reports
 import etabotapp.TMSlib.TMS as TMSlib
+from jira_issue import create_jira_issue_from_json
+import json
+from dataclasses import is_dataclass, asdict
+import pandas as pd
+import networkx as nx
+
 
 celery = clry.Celery()
 celery.config_from_object('django.conf:settings')
@@ -82,6 +88,60 @@ def generate_critical_path(
         tms_wrapper=tms_wrapper, final_nodes=final_nodes, params=params)
     email_reports.EmailReportProcess.send_email(email_msg)
     logging.info('generate_critical_path finished task_id = {}'.format(task_id))
+
+@shared_task
+@celery_task_update
+def generate_critical_path_jira(
+        issues_dict: Dict,
+        start_date_field_name: str,
+        eta_date_field_name: Optional[str],
+        final_nodes: List[str],
+        params: dict,
+        task_id=None
+):
+    """Generate critical path and send email report."""
+    logging.info('generate_critical_path_jira started task_id = {}'.format(task_id))
+    tasks = []
+    for issue_dict in issues_dict:
+        try:
+            issue = create_jira_issue_from_json(issue_dict)
+            tasks.append(issue)
+            start_date = issue.get_field(start_date_field_name)
+            if start_date is None:
+                logger.warning(f'start_date is None for issue {issue.key}.'
+                               f'dict {start_date_field_name}: {issue_dict["fields"].get(start_date_field_name)}.'
+                               f'issue fields {issue.fields}.'
+                               f'issue_dict {issue_dict}')
+        except Exception as e:
+            raise Exception(f"Cannot parse this issue due to {e}: {issue_dict}.")
+
+    cpg, critical_paths_for_nodes = TMSlib.cp.generate_critical_paths_report_for_tasks(
+        tasks=tasks, start_date_field_name=start_date_field_name, eta_date_field_name=eta_date_field_name,
+        final_nodes=final_nodes, params=params)
+
+    critical_paths_for_nodes["cpg_data"] = {
+        "slack_tolerance_for_crit_path_s": cpg.slack_tolerance_for_crit_path_s,
+        "action_items_per_assignee": cpg.action_items_per_assignee,
+        "action_items_for_pm": cpg.action_items_for_pm,
+    }
+
+    def json_serial(obj):
+        if is_dataclass(obj):
+            return asdict(obj)
+        elif isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        elif isinstance(obj, datetime.timedelta):
+            return obj.total_seconds()
+        elif isinstance(obj, pd.DataFrame):
+            return obj.to_dict(orient="records")
+        elif isinstance(obj, nx.Graph):
+            return None
+        raise TypeError(f"Type {type(obj)} not serializable")
+
+    # using replace is hackish, but could not figure out how to do robustly in json_serial
+    result = json.dumps(critical_paths_for_nodes, indent=4, default=json_serial).replace('NaN', 'null')
+    logging.info('generate_critical_path_jira started task_id = {}'.format(task_id))
+    return result
 
 
 @shared_task
