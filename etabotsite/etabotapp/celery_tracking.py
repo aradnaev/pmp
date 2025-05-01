@@ -1,15 +1,16 @@
 from .models import Project, TMS, CeleryTask
 from kombu.utils.uuid import uuid
+from django.utils import timezone
 import datetime
 import functools
 import traceback
 import logging
 import celery as clry
+from etabotapp.compression import compress_payload
 celery = clry.Celery()
 celery.config_from_object('django.conf:settings')
 
 logger = logging.getLogger('django')
-
 
 def celery_task_record_creator(name, owner):
     unique_task_id = uuid()
@@ -17,7 +18,7 @@ def celery_task_record_creator(name, owner):
     celery_task_record = CeleryTask.objects.create(
         task_id=unique_task_id,
         task_name=name,
-        start_time=datetime.datetime.now(),
+        start_time=timezone.now(),
         end_time=None,
         status='PN',
         owner=owner,
@@ -27,15 +28,27 @@ def celery_task_record_creator(name, owner):
     return celery_task_record
 
 
-def send_celery_task_with_tracking(name, args, owner=None, **kwargs):
+def send_celery_task_with_tracking(name, args, owner=None, compress=False, **kwargs):
     """Create a record for tracking celery task and submit the celery task.
-    :param owner:
-    :args: tuple of positional arguments to ass to celery.send_task"""
+    :param args:
+    :param name: celery function name
+    :param compress: gzip data to reduce payload size
+    :param owner: owner object for the data (ForeignKey in DB)
+    :args: tuple of positional arguments to pass to celery.send_task"""
     logger.info('send_celery_task_with_tracking started with owner "{}".'.format(owner))
     celery_task_record = celery_task_record_creator(name=name, owner=owner)
     kwargs['task_id'] = celery_task_record.task_id
     logger.debug('sending celery task {}, {}, {}, {}'.format(name, args, kwargs, celery_task_record.task_id))
-    result = celery.send_task(name, args=args, kwargs=kwargs, task_id=celery_task_record.task_id)
+
+    if compress:
+        compressed_args = compress_payload(args, raise_sqs_max_size_error=True)
+        compressed_kwargs = compress_payload(kwargs, raise_sqs_max_size_error=True)
+        args_to_send = [compressed_args]
+        kwargs_to_send = {'compressed_kwargs': compressed_kwargs}
+    else:
+        args_to_send = args
+        kwargs_to_send = kwargs
+    result = celery.send_task(name, args=args_to_send, kwargs=kwargs_to_send, task_id=celery_task_record.task_id)
     return result
 
 

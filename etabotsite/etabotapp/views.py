@@ -548,7 +548,9 @@ class CriticalPathsViewJIRAplugin(APIView):
         try:
             result = send_celery_task_with_tracking(
                 'etabotapp.django_tasks.generate_critical_path_jira',
-                (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params), owner=self.request.user)
+                (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params),
+                owner=self.request.user,
+                compress=True)
 
             json_response = result.get()
             return Response(
