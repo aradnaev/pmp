@@ -41,7 +41,7 @@ def send_celery_task_with_tracking(name, args, owner=None, compress=False, **kwa
     logger.debug('sending celery task {}, {}, {}, {}'.format(name, args, kwargs, celery_task_record.task_id))
 
     if compress:
-        compressed_args = compress_payload(args, raise_sqs_max_size_error=True)
+        compressed_args = compress_payload(list(args), raise_sqs_max_size_error=True)
         compressed_kwargs = compress_payload(kwargs, raise_sqs_max_size_error=True)
         args_to_send = [compressed_args]
         kwargs_to_send = {'compressed_kwargs': compressed_kwargs}

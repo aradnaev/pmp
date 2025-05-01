@@ -34,8 +34,8 @@ def decompress_payload(encoded):
 
 def decompress(func):
     @wraps(func)
-    def wrapper(compressed_args, compressed_kwargs=None, *a, **k):
+    def wrapper(compressed_args, compressed_kwargs=None):
         args = decompress_payload(compressed_args)
         kwargs = decompress_payload(compressed_kwargs) if compressed_kwargs else {}
-        return func(args, kwargs, *a, **k)
+        return func(*args, **kwargs)
     return wrapper

@@ -26,11 +26,12 @@ def test_decompress_decorator():
     called = {}
 
     @decompress
-    def dummy_task(args, kwargs):
+    def dummy_task(*args, **kwargs):
+        print("Called with:", locals())  # prints all local variables (arguments)
         called["args"] = args
         called["kwargs"] = kwargs
 
-    args_data = [1, 2, 3]
+    args_data = (1, 2, 3)
     kwargs_data = {"x": "y"}
 
     encoded_args = compress_payload(args_data, raise_sqs_max_size_error=True)
