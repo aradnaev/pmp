@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.shortcuts import redirect
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.views import APIView
@@ -512,16 +513,20 @@ class CriticalPathsViewJIRAplugin(APIView):
             final_nodes = post_data['final_nodes']
             logger.debug(f'got final_nodes: {final_nodes}')
         else:
+            error_message = "No final_nodes passed."
+            logger.warning(error_message)
             return Response(
                 {
-                    "error": "No final_nodes passed."
+                    "error": error_message
                 },
                 status=status.HTTP_400_BAD_REQUEST)
 
         if 'start_date_field_name' not in post_data:
+            error_message = "No start_date_field_name passed."
+            logger.warning(error_message)
             return Response(
                 {
-                    "error": "No start_date_field_name passed."
+                    "error": error_message
                 },
                 status=status.HTTP_400_BAD_REQUEST)
         else:
@@ -530,9 +535,11 @@ class CriticalPathsViewJIRAplugin(APIView):
         if 'issues' in post_data:
             issues_dict = post_data['issues']
         else:
+            error_message = "No tasks aka issues passed."
+            logger.warning(error_message)
             return Response(
                 {
-                    "error": "No tasks aka issues passed."
+                    "error": error_message
                 },
                 status=status.HTTP_400_BAD_REQUEST)
 
@@ -541,16 +548,20 @@ class CriticalPathsViewJIRAplugin(APIView):
         try:
             result = send_celery_task_with_tracking(
                 'etabotapp.django_tasks.generate_critical_path_jira',
-                (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params), owner=self.request.user)
+                (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params),
+                owner=self.request.user,
+                compress=True)
 
             json_response = result.get()
             return Response(
                 data=json_response,
                 status=status.HTTP_200_OK)
         except Exception as e:
+            error_message = str(e)
+            logger.warning(error_message)
             return Response(
                 {
-                    "error": str(e),
+                    "error": error_message
                 },
                 status=status.HTTP_400_BAD_REQUEST)
 

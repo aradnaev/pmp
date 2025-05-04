@@ -2,6 +2,8 @@
 
 from celery import shared_task
 import celery as clry
+
+from .compression import decompress
 from .models import Project, TMS, CeleryTask
 from .models import parse_projects_for_TMS
 from django.contrib.auth.models import User
@@ -89,8 +91,10 @@ def generate_critical_path(
     email_reports.EmailReportProcess.send_email(email_msg)
     logging.info('generate_critical_path finished task_id = {}'.format(task_id))
 
+
 @shared_task
 @celery_task_update
+@decompress
 def generate_critical_path_jira(
         issues_dict: Dict,
         start_date_field_name: str,
