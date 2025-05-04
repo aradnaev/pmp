@@ -92,7 +92,7 @@ def generate_critical_path(
     logging.info('generate_critical_path finished task_id = {}'.format(task_id))
 
 
-@shared_task
+@shared_task(time_limit=60)
 @celery_task_update
 @decompress
 def generate_critical_path_jira(
