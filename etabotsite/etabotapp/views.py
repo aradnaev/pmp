@@ -1,5 +1,3 @@
-
-
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.http import HttpResponse
@@ -20,6 +18,7 @@ from .models import TMS, Project
 from .models import oauth
 from .permissions import IsOwnerOrReadOnly, IsOwner
 from etabotapp.TMSlib.JIRA_API import JIRA_wrapper
+from .exceptions import TaskFailedError
 import etabotapp.TMSlib.TMS as TMSlib
 # import etabotapp.TMSlib.data_conversion as dc
 from .user_activation import ActivationProcessor, ResponseCode
@@ -544,26 +543,42 @@ class CriticalPathsViewJIRAplugin(APIView):
                 status=status.HTTP_400_BAD_REQUEST)
 
         eta_date_field_name = post_data.get('eta_date_field_name')
-
+        celery_task_id = None
+        task_path = 'etabotapp.django_tasks.generate_critical_path_jira'
         try:
             result = send_celery_task_with_tracking(
-                'etabotapp.django_tasks.generate_critical_path_jira',
+                task_path,
                 (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params),
                 owner=self.request.user,
                 compress=True)
-
+            celery_task_id = result.id
             json_response = result.get()
+            if json_response:
+                return Response(
+                    data=json_response,
+                    status=status.HTTP_200_OK
+                )
+            else:
+                raise TaskFailedError("{} returned None as a response".format(task_path))
+        except TaskFailedError as e:
+            logger.warning("Celery task failed. task ID {}".format(celery_task_id))
+            logger.error(e)
             return Response(
-                data=json_response,
-                status=status.HTTP_200_OK)
+                {
+                    "error": "An internal server error has occurred.",
+                    "error_id": celery_task_id,
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         except Exception as e:
             error_message = str(e)
             logger.warning(error_message)
             return Response(
                 {
-                    "error": error_message
+                    "error": error_message,
                 },
-                status=status.HTTP_400_BAD_REQUEST)
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class EstimateTMSView(APIView):
