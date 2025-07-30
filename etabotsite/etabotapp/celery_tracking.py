@@ -7,6 +7,7 @@ import traceback
 import logging
 import celery as clry
 from etabotapp.compression import compress_payload
+from .exceptions import TaskFailedError
 celery = clry.Celery()
 celery.config_from_object('django.conf:settings')
 
@@ -52,45 +53,48 @@ def send_celery_task_with_tracking(name, args, owner=None, compress=False, **kwa
     return result
 
 
-def celery_task_update(func):
+def celery_task_update(raise_exceptions: bool = False):
     """Decorator for:
     Updating a job in the database (as CeleryTask) """
-    @functools.wraps(func)
-    def inner(*args, **kwargs):
-        error_str = ''
-        try:
-            logger.debug('celery_task_update decorator is starting celery function. ')
-            result = func(*args, **kwargs)
-            result_status = 'DN'
-            logger.info('Celery task function executed.')
-        except Exception as e:
-            traceback_str = str(traceback.format_exc())
-            logger.error('Celery task failed due to "{}"'.format(e))
-            logger.error('Celery task failed due to "{}"'.format(traceback_str))
-            error_str = str(e) + traceback_str
-            result_status = 'FL'
-            result = None
+    def celery_task_update_with_exception(func):
+        @functools.wraps(func)
+        def inner(*args, **kwargs):
+            task_id = kwargs.get("task_id")
+            error_str = ''
+            try:
+                logger.debug('celery_task_update decorator is starting celery function. ')
+                result = func(*args, **kwargs)
+                result_status = 'DN'
+                logger.info('Celery task function executed.')
+            except Exception as e:
+                traceback_str = str(traceback.format_exc())
+                logger.error('Celery task {} failed due to "{}"'.format(task_id, e))
+                logger.error('Celery task {} failed due to "{}"'.format(task_id, traceback_str))
+                error_str = str(e) + traceback_str
+                result_status = 'FL'
+                result = None
 
-        # End timer
-        task_id = kwargs.get("task_id")
-        if task_id is not None:
-            celery_task_records = CeleryTask.objects.all().filter(pk=task_id)
-            if len(celery_task_records) == 1:
-                celery_task_record = celery_task_records[0]
-                celery_task_record.end_time = datetime.datetime.now()
-                celery_task_record.status = result_status
-                meta_data = celery_task_record.meta_data
-                if meta_data is None:
-                    meta_data = {}
-                meta_data['error_str'] = error_str
-                celery_task_record.meta_data = meta_data
-                celery_task_record.save()
-                logger.info('updated celery task_id={} with status={}'.format(task_id, result_status))
+            # End timer
+            if task_id is not None:
+                celery_task_records = CeleryTask.objects.all().filter(pk=task_id)
+                if len(celery_task_records) == 1:
+                    celery_task_record = celery_task_records[0]
+                    celery_task_record.end_time = datetime.datetime.now()
+                    celery_task_record.status = result_status
+                    meta_data = celery_task_record.meta_data
+                    if meta_data is None:
+                        meta_data = {}
+                    meta_data['error_str'] = error_str
+                    celery_task_record.meta_data = meta_data
+                    celery_task_record.save()
+                    logger.info('updated celery task_id={} with status={}'.format(task_id, result_status))
+                else:
+                    logger.error('not unique celery_task_record found, length={}'.format(len(celery_task_records)))
             else:
-                logger.error('not unique celery_task_record found, length={}'.format(len(celery_task_records)))
-        else:
-            logger.warning('no celery task id passed for tracking.')
-        return result
+                logger.warning('no celery task id passed for tracking.')
 
-    return inner
-
+            if raise_exceptions and error_str:
+                raise TaskFailedError('Celery task {} failed due to "{}"'.format(task_id, error_str))
+            return result
+        return inner
+    return celery_task_update_with_exception

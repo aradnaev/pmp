@@ -93,8 +93,8 @@ def generate_critical_path(
 
 
 @shared_task
-@celery_task_update
 @decompress
+@celery_task_update(raise_exceptions=True)
 def generate_critical_path_jira(
         issues_dict: Dict,
         start_date_field_name: str,
