@@ -551,12 +551,15 @@ class CriticalPathsViewJIRAplugin(APIView):
                 (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params),
                 owner=self.request.user,
                 compress=True)
-
-            json_response = {'task_id': result.task_id}
-
             celery_task_id = result.task_id
+            json_response = {'task_id': celery_task_id}
+            
+            return Response(
+                data=json_response,
+                status=status.HTTP_200_OK)
+
         except TaskFailedError as e:
-            logger.warning("Celery task failed. task ID {}".format(celery_task_id))
+            logger.warning("Celery task submission failed. task ID {}".format(celery_task_id))
             logger.error(e)
             return Response(
                 {
