@@ -551,15 +551,10 @@ class CriticalPathsViewJIRAplugin(APIView):
                 (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params),
                 owner=self.request.user,
                 compress=True)
-            celery_task_id = result.id
-            json_response = result.get()
-            if json_response:
-                return Response(
-                    data=json_response,
-                    status=status.HTTP_200_OK
-                )
-            else:
-                raise TaskFailedError("{} returned None as a response".format(task_path))
+
+            json_response = {'task_id': result.task_id}
+
+            celery_task_id = result.task_id
         except TaskFailedError as e:
             logger.warning("Celery task failed. task ID {}".format(celery_task_id))
             logger.error(e)
@@ -569,15 +564,6 @@ class CriticalPathsViewJIRAplugin(APIView):
                     "error_id": celery_task_id,
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-        except Exception as e:
-            error_message = str(e)
-            logger.warning(error_message)
-            return Response(
-                {
-                    "error": error_message,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
@@ -725,12 +711,48 @@ class CeleryTaskStatusView(APIView):
             return Response(
                 response_dict,
                 status=status.HTTP_400_BAD_REQUEST)
+        result = celery.AsyncResult(task_id)
         logger.debug('task status: {}'.format(
-            celery.AsyncResult(task_id).status))
+            result.status))
+
         response_dict = {
             task_id: celery.AsyncResult(task_id).status,
-            '{}_result'.format(task_id): str(celery.AsyncResult(task_id).result)
+            '{}_result'.format(task_id): str(result.result)
         }
+        logger.debug('CeleryTaskStatusView GET returning {}'.format(response_dict))
+        return Response(
+            data=response_dict,
+            status=status.HTTP_200_OK)
+
+
+
+class CeleryTaskResultView(APIView):
+
+    def get(self, request, id):
+        """
+        Get celery task status for a particular celery task id.
+        """
+        # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
+        # todo: create decorator to check for task id instead of copy paste check
+        logger.debug('CeleryTaskStatusView GET started')
+        task_id = id
+        logger.debug('CeleryTaskStatusView GET started with id={}'.format(id))
+        if not task_id:
+            response_dict = {'error': 'Celery task id not provided!'}
+            logger.debug('CeleryTaskStatusView GET returning {}'.format(response_dict))
+            return Response(
+                response_dict,
+                status=status.HTTP_400_BAD_REQUEST)
+        result = celery.AsyncResult(task_id)
+        logger.debug('task status: {}'.format(
+            result.status))
+
+        response_dict = {
+            'task_id': task_id,
+            'status': celery.AsyncResult(task_id).status,
+        }
+        if result.ready():
+            response_dict['result'] = result.result
         logger.debug('CeleryTaskStatusView GET returning {}'.format(response_dict))
         return Response(
             data=response_dict,
