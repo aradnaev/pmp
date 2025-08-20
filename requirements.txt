@@ -41,6 +41,7 @@ pandas==1.2.3
 pbr==5.5.1
 pluggy==0.13.1
 prompt-toolkit==3.0.16
+psutil>=5.9.0
 psycopg2-binary==2.8.6
 py==1.10.0
 pycparser==2.20
