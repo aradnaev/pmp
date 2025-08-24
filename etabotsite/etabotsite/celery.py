@@ -8,7 +8,7 @@ from django.db import connections
 from django.conf import settings
 from django.apps import apps
 import datetime
-from celery.signals import worker_shutting_down, worker_process_init
+from celery.signals import worker_shutting_down, worker_process_init, worker_process_shutdown
 
 logger = logging.getLogger('celery')
 logger.info('celery logger info.')
@@ -58,10 +58,18 @@ def init_worker(**kwargs):
 
 @worker_shutting_down.connect
 def worker_shutting_down_handler(sender=None, headers=None, body=None, **kwargs):
+    logger.info("=" * 50)
     logger.info(f"Worker {sender} is shutting down - SIGTERM received")
+
+
+@worker_process_shutdown.conect
+def worker_process_shutdown_handler(sender=None, headers=None, body=None, **kwargs):
+    logger.info("-" * 50)
+    logger.info('worker_process_shutdown')
     logger.info('Shutting down db connections...')
     connections.close_all()
     logger.info('Done shutting down db connections...')
+    logger.info("=" * 50)
 
 
 @app.task(bind=True)
