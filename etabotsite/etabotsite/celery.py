@@ -85,4 +85,5 @@ def debug_task(self):
     print('Request: {0!r}'.format(self.request))
 
 init()
+logger.info(f'app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
 logging.info('celery.py finished')
