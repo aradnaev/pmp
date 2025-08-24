@@ -98,8 +98,9 @@ else:
         logging.warning('cannot load sys_email_settings as its not in custom_settings.json')
 
 
-log_filename_with_path = get_key_value(
-    custom_settings, 'LOG_FILENAME_WITH_PATH', default='/usr/src/app/logging/django_log.txt')
+log_filename_with_path = 'django.log'
+# log_filename_with_path = get_key_value(
+#     custom_settings, 'LOG_FILENAME_WITH_PATH', default='/usr/src/app/logging/django_log.txt')
 logging.info('log_filename_with_path: {}'.format(log_filename_with_path))
 
 DJANGO_CONSOLE_LOGGING_LEVEL = get_key_value(custom_settings, 'DJANGO_CONSOLE_LOGGING_LEVEL', default='WARNING')
@@ -136,7 +137,7 @@ logging_config = {
         },
         'django_file': {
             'level': 'INFO',
-            'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'django_format',
             'filename': log_filename_with_path,
             'mode': 'a',
