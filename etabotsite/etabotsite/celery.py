@@ -62,7 +62,7 @@ def worker_shutting_down_handler(sender=None, headers=None, body=None, **kwargs)
     logger.info(f"Worker {sender} is shutting down - SIGTERM received")
 
 
-@worker_process_shutdown.conect
+@worker_process_shutdown.connect
 def worker_process_shutdown_handler(sender=None, headers=None, body=None, **kwargs):
     logger.info("-" * 50)
     logger.info('worker_process_shutdown')
