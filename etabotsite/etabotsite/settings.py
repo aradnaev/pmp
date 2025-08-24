@@ -98,8 +98,9 @@ else:
         logging.warning('cannot load sys_email_settings as its not in custom_settings.json')
 
 
-log_filename_with_path = get_key_value(
-    custom_settings, 'LOG_FILENAME_WITH_PATH', default='/usr/src/app/logging/django_log.txt')
+log_filename_with_path = 'django.log'
+# log_filename_with_path = get_key_value(
+#     custom_settings, 'LOG_FILENAME_WITH_PATH', default='/usr/src/app/logging/django_log.txt')
 logging.info('log_filename_with_path: {}'.format(log_filename_with_path))
 
 DJANGO_CONSOLE_LOGGING_LEVEL = get_key_value(custom_settings, 'DJANGO_CONSOLE_LOGGING_LEVEL', default='WARNING')
@@ -135,7 +136,7 @@ logging_config = {
             'formatter': 'django_format'
         },
         'django_file': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'django_format',
             'filename': log_filename_with_path,
@@ -467,6 +468,9 @@ CELERY_RESULT_BACKEND = 'db+postgresql://{}:{}@{}:5432/{}'.format(
     DATABASES['default']['NAME'],
 )  # Disabling the results backend
 
+CELERY_WORKER_PROC_ALIVE_TIMEOUT = 60
+worker_proc_alive_timeout = 60
+
 # Configuring the message broker for Celery Task Scheduling
 if custom_settings['MESSAGE_BROKER'].lower() == 'aws':
     # AWS Credentials
@@ -513,3 +517,4 @@ logger.error("This is a test of error notification. LOCAL_MODE={}, HOST_URL={}, 
     LOCAL_MODE, HOST_URL, HOST_NAME
 ))
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+logger.info(f'CELERY_WORKER_PROC_ALIVE_TIMEOUT {CELERY_WORKER_PROC_ALIVE_TIMEOUT} seconds')

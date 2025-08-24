@@ -1,8 +1,10 @@
 """Django tasks for celery."""
 
 from celery import shared_task
-import celery as clry
 
+import celery as clry
+import psutil
+import os
 from .compression import decompress
 from .models import Project, TMS, CeleryTask
 from .models import parse_projects_for_TMS
@@ -21,9 +23,8 @@ import pandas as pd
 import networkx as nx
 
 
-celery = clry.Celery()
-celery.config_from_object('django.conf:settings')
 logger = logging.getLogger('django')
+
 
 
 @shared_task
@@ -105,7 +106,10 @@ def generate_critical_path_jira(
         task_id=None
 ):
     """Generate critical path and send email report."""
-    logging.info('generate_critical_path_jira started task_id = {}'.format(task_id))
+    process = psutil.Process(os.getpid())
+    memory_before = process.memory_info().rss / 1024 / 1024  # MB
+
+    logging.info(f'generate_critical_path_jira started task_id = {task_id}. memory_before = {memory_before:.1f}')
     tasks = []
     for issue_dict in issues_dict:
         try:
@@ -145,7 +149,10 @@ def generate_critical_path_jira(
 
     # using replace is hackish, but could not figure out how to do robustly in json_serial
     result = json.dumps(critical_paths_for_nodes, indent=4, default=json_serial).replace('NaN', 'null')
-    logging.info('generate_critical_path_jira started task_id = {}'.format(task_id))
+    memory_after = process.memory_info().rss / 1024 / 1024  # MB
+    logging.info(f'generate_critical_path_jira finished task_id = {task_id}.\n'
+                 f'Memory usage: {memory_before:.2f}MB -> {memory_after:.2f}MB')
+
     return result
 
 

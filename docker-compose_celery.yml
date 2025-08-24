@@ -6,8 +6,8 @@ services:
     build:
       context: .
       dockerfile: ./celery/Dockerfile
-    volumes:
-      - pmp-celery-logging:/usr/src/app/logging
-
-volumes:
-  pmp-celery-logging:
+#    volumes:
+#      - pmp-celery-logging:/usr/src/app/logging
+#
+#volumes:
+#  pmp-celery-logging:

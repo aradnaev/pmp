@@ -4,7 +4,7 @@
 FROM python:3.9
 
 # File Author / Maintainer
-MAINTAINER Maintaner Alex Radnaev
+MAINTAINER Maintainer Alex Radnaev
 
 ENV PROJECT_ROOT /usr/src/app
 ADD . /usr/src/app

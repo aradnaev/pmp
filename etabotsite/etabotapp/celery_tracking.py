@@ -8,10 +8,20 @@ import logging
 import celery as clry
 from etabotapp.compression import compress_payload
 from .exceptions import TaskFailedError
-celery = clry.Celery()
-celery.config_from_object('django.conf:settings')
 
 logger = logging.getLogger('django')
+celery = clry.Celery()
+
+logger.info(
+    f'celery_tracking.py before django.conf:settings app.conf.worker_proc_alive_timeout: {celery.conf.worker_proc_alive_timeout} seconds')
+celery.config_from_object('django.conf:settings')
+logger.info(
+    f'celery_tracking.py after django.conf:settings app.conf.worker_proc_alive_timeout: {celery.conf.worker_proc_alive_timeout} seconds')
+celery.conf.update(
+    worker_proc_alive_timeout=60
+)
+logger.info(f'celery_tracking.py after update app.conf.worker_proc_alive_timeout: {celery.conf.worker_proc_alive_timeout} seconds')
+
 
 def celery_task_record_creator(name, owner):
     unique_task_id = uuid()
