@@ -15,8 +15,12 @@ logger.info('celery logger info.')
 # Set default Django settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'etabotsite.settings')
 app = Celery('etabotapp')
+logger.info(f'init app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
+app.conf.worker_proc_alive_timeout = 60
+logger.info(f'changed app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
 
 def init():
+    logger.info('init started.')
     django.setup()
 
     app.config_from_object('django.conf:settings')
@@ -35,6 +39,7 @@ def init():
                 datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'))},
             'schedule': crontab(**crontab_args)
         }})
+    logger.info('init is done.')
 
 @worker_process_init.connect
 def init_worker(**kwargs):
