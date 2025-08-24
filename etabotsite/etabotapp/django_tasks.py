@@ -1,7 +1,7 @@
 """Django tasks for celery."""
 
 from celery import shared_task
-from celery.signals import worker_shutting_down, worker_process_init
+
 import celery as clry
 import psutil
 import os
@@ -27,39 +27,6 @@ celery = clry.Celery()
 celery.config_from_object('django.conf:settings')
 logger = logging.getLogger('django')
 
-
-@worker_process_init.connect
-def init_worker(**kwargs):
-    """
-    Initialize worker process with logging setup.
-    This runs once per worker process when it starts.
-    """
-    # Set up logging for this worker process
-
-
-    # Log worker process startup information
-    logger.info("=" * 50)
-    logger.info("Worker process starting up")
-    logger.info(f"Process ID: {os.getpid()}")
-    logger.info(f"Parent Process ID: {os.getppid()}")
-
-    # Log any additional initialization info
-    logger.info("Initializing worker-specific resources...")
-
-    # You can add custom initialization logic here
-    # For example: database connections, cache setup, etc.
-
-    logger.info("Worker process initialization complete")
-    logger.info("=" * 50)
-
-
-@worker_shutting_down.connect
-def worker_shutting_down_handler(sender=None, headers=None, body=None, **kwargs):
-    logger.info(f"Worker {sender} is shutting down - SIGTERM received")
-
-@worker_shutting_down.connect
-def worker_shutdown_handler(sender=None, headers=None, body=None, **kwargs):
-    logger.info(f"Worker {sender} has shut down completely")
 
 
 @shared_task
