@@ -12,14 +12,14 @@ cd etabotsite
 
 trap 'echo "Shutting down gracefully..."; kill -TERM $celery_pid; wait $celery_pid' SIGTERM SIGINT
 
-celery -A etabotsite worker \
+log_msg "log_msg exec celery"
+echo ExecCelery
+
+exec celery -A etabotsite worker \
   -l info \
   --max-tasks-per-child=4 \
-  --concurrency=2 \
-  --prefetch-multiplier=1 \
-  --without-gossip \
-  --without-mingle \
-  --without-heartbeat
+  --concurrency=2
+  --worker_proc_alive_timeout=16
 
 celery_pid=$!
 log_msg "Celery worker started with PID: $celery_pid"
