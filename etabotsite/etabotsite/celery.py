@@ -16,22 +16,7 @@ logger.info('celery logger info.')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'etabotsite.settings')
 app = Celery('etabotapp')
 
-
-@worker_process_init.connect
-def init_worker(**kwargs):
-    """
-    Initialize worker process with logging setup.
-    This runs once per worker process when it starts.
-    """
-    # Set up logging for this worker process
-    logger.info("=" * 50)
-    logger.info("Worker process starting up")
-    logger.info(f"Process ID: {os.getpid()}")
-    logger.info(f"Parent Process ID: {os.getppid()}")
-
-    # Log any additional initialization info
-    logger.info("Initializing worker-specific resources...")
-
+def init():
     django.setup()
 
     app.config_from_object('django.conf:settings')
@@ -51,6 +36,22 @@ def init_worker(**kwargs):
             'schedule': crontab(**crontab_args)
         }})
 
+@worker_process_init.connect
+def init_worker(**kwargs):
+    """
+    Initialize worker process with logging setup.
+    This runs once per worker process when it starts.
+    """
+    # Set up logging for this worker process
+    logger.info("=" * 50)
+    logger.info("Worker process starting up")
+    logger.info(f"Process ID: {os.getpid()}")
+    logger.info(f"Parent Process ID: {os.getppid()}")
+
+    # Log any additional initialization info
+    logger.info("Initializing worker-specific resources...")
+    init()
+
     logger.info("Worker process initialization complete")
     logger.info("=" * 50)
 
@@ -67,5 +68,5 @@ def worker_shutting_down_handler(sender=None, headers=None, body=None, **kwargs)
 def debug_task(self):
     print('Request: {0!r}'.format(self.request))
 
-
+init()
 logging.info('celery.py finished')
