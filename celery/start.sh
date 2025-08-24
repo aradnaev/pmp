@@ -17,7 +17,7 @@ echo ExecCelery
 
 exec celery -A etabotsite worker \
   -l info \
-  --max-tasks-per-child=4 \
+  --max-tasks-per-child=50 \
   --concurrency=2
 
 celery_pid=$!
