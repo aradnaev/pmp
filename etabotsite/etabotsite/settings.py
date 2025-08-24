@@ -135,8 +135,8 @@ logging_config = {
             'formatter': 'django_format'
         },
         'django_file': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.RotatingFileHandler',
+            'level': 'INFO',
+            'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
             'formatter': 'django_format',
             'filename': log_filename_with_path,
             'mode': 'a',
