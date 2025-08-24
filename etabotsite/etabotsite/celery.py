@@ -22,8 +22,9 @@ logger.info(f'changed app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_
 def init():
     logger.info('init started.')
     django.setup()
-
+    logger.info(f'app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
     app.config_from_object('django.conf:settings')
+    logger.info(f'app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
     # Load tasks from all registered apps
     app.autodiscover_tasks(related_name='django_tasks')
 

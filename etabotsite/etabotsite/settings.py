@@ -468,6 +468,9 @@ CELERY_RESULT_BACKEND = 'db+postgresql://{}:{}@{}:5432/{}'.format(
     DATABASES['default']['NAME'],
 )  # Disabling the results backend
 
+CELERY_WORKER_PROC_ALIVE_TIMEOUT = 60
+worker_proc_alive_timeout = 60
+
 # Configuring the message broker for Celery Task Scheduling
 if custom_settings['MESSAGE_BROKER'].lower() == 'aws':
     # AWS Credentials
