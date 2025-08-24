@@ -69,6 +69,9 @@ def worker_process_shutdown_handler(sender=None, headers=None, body=None, **kwar
     logger.info('Shutting down db connections...')
     connections.close_all()
     logger.info('Done shutting down db connections...')
+    logger.info('closing connection to broker')
+    app.connection().clone()
+    logger.info('Done closing connection to broker')
     logger.info("=" * 50)
 
 
