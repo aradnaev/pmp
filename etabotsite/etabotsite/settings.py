@@ -517,3 +517,4 @@ logger.error("This is a test of error notification. LOCAL_MODE={}, HOST_URL={}, 
     LOCAL_MODE, HOST_URL, HOST_NAME
 ))
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+logger.info(f'CELERY_WORKER_PROC_ALIVE_TIMEOUT {CELERY_WORKER_PROC_ALIVE_TIMEOUT} seconds')

@@ -23,8 +23,6 @@ import pandas as pd
 import networkx as nx
 
 
-celery = clry.Celery()
-celery.config_from_object('django.conf:settings')
 logger = logging.getLogger('django')
 
 

@@ -19,7 +19,6 @@ exec celery -A etabotsite worker \
   -l info \
   --max-tasks-per-child=4 \
   --concurrency=2
-  --worker_proc_alive_timeout=60
 
 celery_pid=$!
 log_msg "Celery worker started with PID: $celery_pid"

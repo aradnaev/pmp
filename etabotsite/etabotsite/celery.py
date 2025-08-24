@@ -15,6 +15,9 @@ logger.info('celery logger info.')
 # Set default Django settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'etabotsite.settings')
 app = Celery('etabotapp')
+app.conf.update(
+    worker_proc_alive_timeout=60
+)
 logger.info(f'init app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
 app.conf.worker_proc_alive_timeout = 60
 logger.info(f'changed app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
@@ -22,11 +25,17 @@ logger.info(f'changed app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_
 def init():
     logger.info('init started.')
     django.setup()
-    logger.info(f'app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
+    logger.info(f'before django.conf:settings app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
     app.config_from_object('django.conf:settings')
-    logger.info(f'app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
+    logger.info(f'after django.conf:settings app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
+    app.conf.update(
+        worker_proc_alive_timeout=60
+    )
+    logger.info(f'after update app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
     # Load tasks from all registered apps
     app.autodiscover_tasks(related_name='django_tasks')
+    logger.info(f'after autodiscover_tasks app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
+    # Load tasks from all registered apps
 
     crontab_args = settings.CUSTOM_SETTINGS.get(
         'eta_crontab_args',
@@ -40,6 +49,8 @@ def init():
                 datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'))},
             'schedule': crontab(**crontab_args)
         }})
+    logger.info(
+        f'after beat_schedule app.conf.worker_proc_alive_timeout: {app.conf.worker_proc_alive_timeout} seconds')
     logger.info('init is done.')
 
 @worker_process_init.connect
