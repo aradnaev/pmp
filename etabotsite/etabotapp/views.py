@@ -500,51 +500,65 @@ class CriticalPathsViewJIRAplugin(APIView):
         """Generate critical path for a given JQL and explicit list of JIRA tasks rather than TMS data source.
 
         """
-        logger.info('CriticalPathsViewJIRAplugin started.')
-        params = {}
-        post_data = {}
-        if request.body:
-            logger.debug('request.body: {}'.format(request.body))
-            post_data = json.loads(request.body)
-            params = post_data.get('params', {})
-            logger.debug('CriticalPathView call global_params: {}'.format(params))
-        if 'final_nodes' in post_data:
-            final_nodes = post_data['final_nodes']
-            logger.debug(f'got final_nodes: {final_nodes}')
-        else:
-            error_message = "No final_nodes passed."
-            logger.warning(error_message)
+        prep_celery_task_id = str(hashlib.sha256(request.body).hexdigest())
+
+        logger.info(f'CriticalPathsViewJIRAplugin started prep_celery_task_id={prep_celery_task_id}.')
+        try:
+            params = {}
+            post_data = {}
+            if request.body:
+                logger.debug('request.body: {}'.format(request.body))
+                post_data = json.loads(request.body)
+                params = post_data.get('params', {})
+                logger.debug('CriticalPathView call global_params: {}'.format(params))
+            if 'final_nodes' in post_data:
+                final_nodes = post_data['final_nodes']
+                logger.debug(f'got final_nodes: {final_nodes}')
+            else:
+                error_message = "No final_nodes passed."
+                logger.warning(error_message)
+                return Response(
+                    {
+                        "error": error_message
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
+
+            if 'start_date_field_name' not in post_data:
+                error_message = "No start_date_field_name passed."
+                logger.warning(error_message)
+                return Response(
+                    {
+                        "error": error_message
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
+            else:
+                start_date_field_name = post_data['start_date_field_name']
+
+            if 'issues' in post_data:
+                issues_dict = post_data['issues']
+            else:
+                error_message = "No tasks aka issues passed."
+                logger.warning(error_message)
+                return Response(
+                    {
+                        "error": error_message
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
+
+            eta_date_field_name = post_data.get('eta_date_field_name')
+            celery_task_id = None
+            task_path = 'etabotapp.django_tasks.generate_critical_path_jira'
+        except TaskFailedError as e:
+            logger.warning("Celery task submission failed. task ID {}".format(prep_celery_task_id))
+            logger.error(e)
             return Response(
                 {
-                    "error": error_message
+                    "error": "An internal server error has occurred during preparation stage.",
+                    "error_id": prep_celery_task_id,
                 },
-                status=status.HTTP_400_BAD_REQUEST)
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-        if 'start_date_field_name' not in post_data:
-            error_message = "No start_date_field_name passed."
-            logger.warning(error_message)
-            return Response(
-                {
-                    "error": error_message
-                },
-                status=status.HTTP_400_BAD_REQUEST)
-        else:
-            start_date_field_name = post_data['start_date_field_name']
-
-        if 'issues' in post_data:
-            issues_dict = post_data['issues']
-        else:
-            error_message = "No tasks aka issues passed."
-            logger.warning(error_message)
-            return Response(
-                {
-                    "error": error_message
-                },
-                status=status.HTTP_400_BAD_REQUEST)
-
-        eta_date_field_name = post_data.get('eta_date_field_name')
-        celery_task_id = None
-        task_path = 'etabotapp.django_tasks.generate_critical_path_jira'
         try:
             result = send_celery_task_with_tracking(
                 task_path,
@@ -563,7 +577,7 @@ class CriticalPathsViewJIRAplugin(APIView):
             logger.error(e)
             return Response(
                 {
-                    "error": "An internal server error has occurred.",
+                    "error": "An internal server error has occurred during execution stage.",
                     "error_id": celery_task_id,
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
