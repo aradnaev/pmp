@@ -753,7 +753,7 @@ class CeleryTaskResultView(APIView):
         # todo: create decorator to check for task id instead of copy paste check
         logger.debug('CeleryTaskStatusView GET started')
         task_id = id
-        logger.debug('CeleryTaskStatusView GET started with id={}'.format(id))
+        logger.info('CeleryTaskStatusView GET started with id={}'.format(id))
         if not task_id:
             response_dict = {'error': 'Celery task id not provided!'}
             logger.debug('CeleryTaskStatusView GET returning {}'.format(response_dict))
@@ -761,7 +761,7 @@ class CeleryTaskResultView(APIView):
                 response_dict,
                 status=status.HTTP_400_BAD_REQUEST)
         result = celery.AsyncResult(task_id)
-        logger.debug('task status: {}'.format(
+        logger.info('task status: {}'.format(
             result.status))
 
         response_dict = {
@@ -769,7 +769,14 @@ class CeleryTaskResultView(APIView):
             'status': celery.AsyncResult(task_id).status,
         }
         if result.ready():
-            response_dict['result'] = result.result
+            # Handle case where result might be an exception
+            if result.failed():
+                logger.warning(f'Task {task_id} failed with result: {result.result}')
+                response_dict['result'] = str(result.result)
+                response_dict['error'] = True
+            else:
+                response_dict['result'] = result.result
+            logger.info('result is ready')
         logger.debug('CeleryTaskStatusView GET returning {}'.format(response_dict))
         return Response(
             data=response_dict,
