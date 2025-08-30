@@ -115,7 +115,7 @@ def generate_critical_path_jira(
         try:
             issue = create_jira_issue_from_json(issue_dict)
             tasks.append(issue)
-            start_date = issue.get_field(start_date_field_name)
+            start_date = issue.get_field(start_date_field_name, None)
             if start_date is None:
                 logger.warning(f'start_date is None for issue {issue.key}.'
                                f'dict {start_date_field_name}: {issue_dict["fields"].get(start_date_field_name)}.'
