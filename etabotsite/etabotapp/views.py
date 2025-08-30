@@ -550,7 +550,7 @@ class CriticalPathsViewJIRAplugin(APIView):
             task_path = 'etabotapp.django_tasks.generate_critical_path_jira'
         except TaskFailedError as e:
             logger.warning("Celery task submission failed. task ID {}".format(prep_celery_task_id))
-            logger.error(e)
+            logger.error(str(e))
             return Response(
                 {
                     "error": "An internal server error has occurred during preparation stage.",
@@ -574,7 +574,7 @@ class CriticalPathsViewJIRAplugin(APIView):
 
         except TaskFailedError as e:
             logger.warning("Celery task submission failed. task ID {}".format(celery_task_id))
-            logger.error(e)
+            logger.error(str(e))
             return Response(
                 {
                     "error": "An internal server error has occurred during execution stage.",
