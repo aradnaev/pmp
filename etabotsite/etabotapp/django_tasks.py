@@ -120,7 +120,7 @@ def generate_critical_path_jira(
             except Exception as e:
                 logger.warning(f'cannot get start_date for issue {issue.key} from {start_date_field_name} due to {e}')
                 start_date = None
-                setattr(issue, start_date_field_name, start_date)
+                setattr(issue.fields, start_date_field_name, start_date)
 
             if start_date is None:
                 logger.warning(f'start_date is None for issue {issue.key}.'
