@@ -551,7 +551,7 @@ class CriticalPathsViewJIRAplugin(APIView):
             if start_date_field_name == 'trigger_prep_celery_task_error':
                 raise NameError(f"Test error for prep celery task {prep_celery_task_id} triggered by "
                                 f"start_date_field_name='{start_date_field_name}'.")
-        except TaskFailedError as e:
+        except Exception as e:
             logger.warning("Celery task submission failed. task ID {}".format(prep_celery_task_id))
             logger.error(str(e))
             return Response(
@@ -576,7 +576,7 @@ class CriticalPathsViewJIRAplugin(APIView):
                 data=json_response,
                 status=status.HTTP_200_OK)
 
-        except TaskFailedError as e:
+        except Exception as e:
             logger.warning("Celery task submission failed. task ID {}".format(celery_task_id))
             logger.error(str(e))
             return Response(
