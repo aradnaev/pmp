@@ -548,6 +548,8 @@ class CriticalPathsViewJIRAplugin(APIView):
             eta_date_field_name = post_data.get('eta_date_field_name')
             celery_task_id = None
             task_path = 'etabotapp.django_tasks.generate_critical_path_jira'
+            if start_date_field_name == 'trigger_prep_celery_task_error':
+                raise NameError(f"Test error for prep celery task {prep_celery_task_id}")
         except TaskFailedError as e:
             logger.warning("Celery task submission failed. task ID {}".format(prep_celery_task_id))
             logger.error(str(e))

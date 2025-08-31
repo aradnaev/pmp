@@ -28,6 +28,7 @@ logger = logging.getLogger('django')
 
 
 @shared_task
+@celery_task_update
 def estimate_all(task_id=None, **kwargs):  # Put kwargs into a decorator
     """Estimate ETA for all tasks for all users."""
 
