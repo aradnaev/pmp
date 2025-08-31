@@ -177,8 +177,15 @@ logger = logging.getLogger('django')
 # anything lower.
 
 if LOCAL_MODE:
+    # In local mode, we want DEBUG level for console and file handlers,
+    # but keep ERROR level for mail_admins handler
     logger.setLevel(logging.DEBUG)
-    print('set logger level to DEBUG')
+    # Ensure mail_admins handler still works for ERROR level logs
+    for handler in logger.handlers:
+        if isinstance(handler, logging.Handler) and hasattr(handler, 'level'):
+            if 'mail_admins' in str(handler.__class__):
+                handler.setLevel(logging.ERROR)
+    print('set logger level to DEBUG (mail_admins handler kept at ERROR level)')
 else:
     logger.setLevel(logging.INFO)
     print('set logger level to INFO')

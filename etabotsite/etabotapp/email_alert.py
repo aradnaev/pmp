@@ -56,10 +56,10 @@ class EmailAlertWorker(object):
         return msg
 
 
-class SendEmailAlert(logging.StreamHandler):
+class SendEmailAlert(logging.Handler):
     """ Send Email Alerts on Errors and above
 
-        SendEmailAlert is a subclass of logging.StreamHandler
+        SendEmailAlert is a subclass of logging.Handler
         It is used in the custom logger outlined in settings.py
         It will use the EmailAlertWorker to send emails to listed admins.
 
@@ -73,7 +73,7 @@ class SendEmailAlert(logging.StreamHandler):
             EMAIL_PORT,
             ADMINS,
             alertWorker=EmailAlertWorker()):
-        logging.StreamHandler.__init__(self)
+        logging.Handler.__init__(self)
         self.SYS_DOMAIN = SYS_DOMAIN
         self.SYS_EMAIL = SYS_EMAIL
         self.SYS_EMAIL_PWD = SYS_EMAIL_PWD
@@ -86,9 +86,13 @@ class SendEmailAlert(logging.StreamHandler):
 
     def emit(self, record):
         """This method is called automatically when handling a log"""
-
-        for emailTo in self.ADMINS:
-            msg = self._emailAlertWorker.format_email_msg(
-                self.email_from, emailTo, self.email_subject, self.format(record))
-            self._emailAlertWorker.send_email(
-                msg, self.EMAIL_HOST, self.EMAIL_PORT, self.SYS_EMAIL, self.SYS_EMAIL_PWD)
+        try:
+            for emailTo in self.ADMINS:
+                msg = self._emailAlertWorker.format_email_msg(
+                    self.email_from, emailTo, self.email_subject, self.format(record))
+                self._emailAlertWorker.send_email(
+                    msg, self.EMAIL_HOST, self.EMAIL_PORT, self.SYS_EMAIL, self.SYS_EMAIL_PWD)
+        except Exception as e:
+            # Log the error but don't let it break the logging system
+            import sys
+            sys.stderr.write(f'Failed to send admin email alert: {e}\n')

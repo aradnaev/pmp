@@ -78,7 +78,7 @@ def celery_task_update(raise_exceptions: bool = False):
                 logger.info('Celery task function executed.')
             except Exception as e:
                 traceback_str = str(traceback.format_exc())
-                logger.error('Celery task {} failed due to "{}"'.format(task_id, e))
+                logger.error('Celery task {} failed due to "{}"'.format(task_id, str(e)))
                 logger.error('Celery task {} failed due to "{}"'.format(task_id, traceback_str))
                 error_str = str(e) + traceback_str
                 result_status = 'FL'

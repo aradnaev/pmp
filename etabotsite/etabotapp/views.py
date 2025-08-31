@@ -500,51 +500,69 @@ class CriticalPathsViewJIRAplugin(APIView):
         """Generate critical path for a given JQL and explicit list of JIRA tasks rather than TMS data source.
 
         """
-        logger.info('CriticalPathsViewJIRAplugin started.')
-        params = {}
-        post_data = {}
-        if request.body:
-            logger.debug('request.body: {}'.format(request.body))
-            post_data = json.loads(request.body)
-            params = post_data.get('params', {})
-            logger.debug('CriticalPathView call global_params: {}'.format(params))
-        if 'final_nodes' in post_data:
-            final_nodes = post_data['final_nodes']
-            logger.debug(f'got final_nodes: {final_nodes}')
-        else:
-            error_message = "No final_nodes passed."
-            logger.warning(error_message)
+        prep_celery_task_id = str(hashlib.sha256(request.body).hexdigest())
+
+        logger.info(f'CriticalPathsViewJIRAplugin started prep_celery_task_id={prep_celery_task_id}.')
+        try:
+            params = {}
+            post_data = {}
+            if request.body:
+                logger.debug('request.body: {}'.format(request.body))
+                post_data = json.loads(request.body)
+                params = post_data.get('params', {})
+                logger.debug('CriticalPathView call global_params: {}'.format(params))
+            if 'final_nodes' in post_data:
+                final_nodes = post_data['final_nodes']
+                logger.debug(f'got final_nodes: {final_nodes}')
+            else:
+                error_message = "No final_nodes passed."
+                logger.warning(error_message)
+                return Response(
+                    {
+                        "error": error_message
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
+
+            if 'start_date_field_name' not in post_data:
+                error_message = "No start_date_field_name passed."
+                logger.warning(error_message)
+                return Response(
+                    {
+                        "error": error_message
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
+            else:
+                start_date_field_name = post_data['start_date_field_name']
+
+            if 'issues' in post_data:
+                issues_dict = post_data['issues']
+            else:
+                error_message = "No tasks aka issues passed."
+                logger.warning(error_message)
+                return Response(
+                    {
+                        "error": error_message
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
+
+            eta_date_field_name = post_data.get('eta_date_field_name')
+            celery_task_id = None
+            task_path = 'etabotapp.django_tasks.generate_critical_path_jira'
+            if start_date_field_name == 'trigger_prep_celery_task_error':
+                raise NameError(f"Test error for prep celery task {prep_celery_task_id} triggered by "
+                                f"start_date_field_name='{start_date_field_name}'.")
+        except Exception as e:
+            logger.warning("Celery task submission failed. task ID {}".format(prep_celery_task_id))
+            logger.error(str(e))
             return Response(
                 {
-                    "error": error_message
+                    "error": f"Error code: {prep_celery_task_id}: "
+                             f"An internal server error has occurred during preparation stage. ",
+                    "error_id": prep_celery_task_id,
                 },
-                status=status.HTTP_400_BAD_REQUEST)
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-        if 'start_date_field_name' not in post_data:
-            error_message = "No start_date_field_name passed."
-            logger.warning(error_message)
-            return Response(
-                {
-                    "error": error_message
-                },
-                status=status.HTTP_400_BAD_REQUEST)
-        else:
-            start_date_field_name = post_data['start_date_field_name']
-
-        if 'issues' in post_data:
-            issues_dict = post_data['issues']
-        else:
-            error_message = "No tasks aka issues passed."
-            logger.warning(error_message)
-            return Response(
-                {
-                    "error": error_message
-                },
-                status=status.HTTP_400_BAD_REQUEST)
-
-        eta_date_field_name = post_data.get('eta_date_field_name')
-        celery_task_id = None
-        task_path = 'etabotapp.django_tasks.generate_critical_path_jira'
         try:
             result = send_celery_task_with_tracking(
                 task_path,
@@ -558,12 +576,15 @@ class CriticalPathsViewJIRAplugin(APIView):
                 data=json_response,
                 status=status.HTTP_200_OK)
 
-        except TaskFailedError as e:
+        except Exception as e:
             logger.warning("Celery task submission failed. task ID {}".format(celery_task_id))
-            logger.error(e)
+            logger.error(str(e))
             return Response(
                 {
-                    "error": "An internal server error has occurred.",
+                    "error": f"An internal server error has occurred during execution stage. "
+                             f"Error code: {celery_task_id}",
+                    "error_details": str(e),
+                    "error_type": e.__class__.__name__,
                     "error_id": celery_task_id,
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -739,7 +760,7 @@ class CeleryTaskResultView(APIView):
         # todo: create decorator to check for task id instead of copy paste check
         logger.debug('CeleryTaskStatusView GET started')
         task_id = id
-        logger.debug('CeleryTaskStatusView GET started with id={}'.format(id))
+        logger.info('CeleryTaskStatusView GET started with id={}'.format(id))
         if not task_id:
             response_dict = {'error': 'Celery task id not provided!'}
             logger.debug('CeleryTaskStatusView GET returning {}'.format(response_dict))
@@ -747,7 +768,7 @@ class CeleryTaskResultView(APIView):
                 response_dict,
                 status=status.HTTP_400_BAD_REQUEST)
         result = celery.AsyncResult(task_id)
-        logger.debug('task status: {}'.format(
+        logger.info('task status: {}'.format(
             result.status))
 
         response_dict = {
@@ -755,7 +776,14 @@ class CeleryTaskResultView(APIView):
             'status': celery.AsyncResult(task_id).status,
         }
         if result.ready():
-            response_dict['result'] = result.result
+            # Handle case where result might be an exception
+            if result.failed():
+                logger.warning(f'Task {task_id} failed with result: {result.result}')
+                response_dict['result'] = str(result.result)
+                response_dict['error'] = f'Calculation failed with error code: {task_id}'
+            else:
+                response_dict['result'] = result.result
+            logger.info('result is ready')
         logger.debug('CeleryTaskStatusView GET returning {}'.format(response_dict))
         return Response(
             data=response_dict,
