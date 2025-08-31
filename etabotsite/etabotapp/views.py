@@ -556,8 +556,8 @@ class CriticalPathsViewJIRAplugin(APIView):
             logger.error(str(e))
             return Response(
                 {
-                    "error": f"An internal server error has occurred during preparation stage. "
-                             f"Error code: {prep_celery_task_id}",
+                    "error": f"Error code: {prep_celery_task_id}: "
+                             f"An internal server error has occurred during preparation stage. ",
                     "error_id": prep_celery_task_id,
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -583,6 +583,8 @@ class CriticalPathsViewJIRAplugin(APIView):
                 {
                     "error": f"An internal server error has occurred during execution stage. "
                              f"Error code: {celery_task_id}",
+                    "error_details": str(e),
+                    "error_type": e.__class__.__name__,
                     "error_id": celery_task_id,
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
