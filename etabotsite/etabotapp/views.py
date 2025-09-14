@@ -511,6 +511,7 @@ class CriticalPathsViewJIRAplugin(APIView):
                 post_data = json.loads(request.body)
                 params = post_data.get('params', {})
                 logger.debug('CriticalPathView call global_params: {}'.format(params))
+                params['slack_tolerance_for_crit_path_days'] = post_data.get('slack_tolerance_days', 0.)
             if 'final_nodes' in post_data:
                 final_nodes = post_data['final_nodes']
                 logger.debug(f'got final_nodes: {final_nodes}')
