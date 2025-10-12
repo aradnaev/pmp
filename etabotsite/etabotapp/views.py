@@ -789,3 +789,258 @@ class CeleryTaskResultView(APIView):
         return Response(
             data=response_dict,
             status=status.HTTP_200_OK)
+
+class CeleryCriticalPathHeartbeatView(APIView):
+    """
+    Heartbeat endpoint for AWS monitoring of Critical Path API service.
+    Submits a test job to the real production server and polls for results with exponential backoff.
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        """
+        System-level health check for critical path API.
+        
+        Workflow:
+        1. Submit test request to critical_paths_plugin endpoint on production server
+        2. Get job_id back
+        3. Poll job-result endpoint with exponential backoff
+        4. Return 200 if result received within 5 seconds
+        5. Return 503 if timeout exceeded
+        """
+        import time
+        import requests
+        
+        logger.info('CeleryCriticalPathHeartbeatView GET started')
+        
+        # Get the production server URL from Django settings
+        host_url = getattr(settings, 'HOST_URL', 'http://127.0.0.1:8000')
+        logger.info(f'Testing against server: {host_url}')
+        
+        # Get authentication token from Django settings
+        auth_token = getattr(settings, 'HEARTBEAT_AUTH_TOKEN', None)
+        if not auth_token:
+            logger.warning('HEARTBEAT_AUTH_TOKEN not configured. Requests will be unauthenticated.')
+        
+        # Prepare authentication headers
+        headers = {}
+        if auth_token:
+            headers['Authorization'] = f'Token {auth_token}'
+            logger.debug('Authorization header added to requests')
+        
+        test_payload = {
+  "final_nodes": ["SDEPM-24"],
+  "start_date_field_name": "customfield_10208",
+  "slack_tolerance_days": 7,
+  "issues": [
+    {
+    "key": "SDEPM-24",
+    
+      "fields": {
+        "summary": "Deployment to Production",
+        "customfield_10208": "2025-04-25",
+        "issuelinks": [
+          {
+            "id": "12761",
+            "self": "https://etabot.atlassian.net/rest/api/3/issueLink/12761",
+            "type": {
+              "id": "10000",
+              "name": "Blocks",
+              "inward": "is blocked by",
+              "outward": "blocks",
+              "self": "https://etabot.atlassian.net/rest/api/3/issueLinkType/10000"
+            },
+          }
+        ],
+        "issuetype": {"name": "Task"},
+        "duedate": "2025-04-29",
+        "assignee": {"displayName":"assignee_test", "accountId": "test"},
+        "key": "SDEPM-24",
+        "status": {
+          "self": "https://etabot.atlassian.net/rest/api/3/status/10128",
+          "name": "To Do",
+          "id": "10128",
+          "statusCategory": {
+            "id": 2,
+            "key": "new",
+            "colorName": "blue-gray",
+            "name": "To Do"
+          }
+        }
+      }
+    }
+  ]
+}
+
+        
+        timeout_seconds = 5
+        start_time = time.time()
+        
+        try:
+            # Step 1: Submit request to critical_paths_plugin endpoint
+            submit_url = f'{host_url}/api/critical_paths_plugin'
+            logger.debug(f'Submitting test job to {submit_url}')
+            
+            try:
+                response = requests.post(
+                    submit_url,
+                    json=test_payload,
+                    headers=headers,
+                    timeout=timeout_seconds,
+                    verify=True  # Enable SSL verification for production
+                )
+            except requests.exceptions.RequestException as e:
+                logger.error(f'Failed to submit heartbeat job due to request exception: {str(e)}')
+                return Response(
+                    {
+                        "status": "error",
+                        "message": "Failed to connect to critical_paths_plugin endpoint",
+                        "details": str(e),
+                        "target_url": submit_url
+                    },
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+            
+            if response.status_code != 200:
+                logger.error(f'Failed to submit heartbeat job. Status: {response.status_code}')
+                return Response(
+                    {
+                        "status": "error",
+                        "message": "Failed to submit test job to critical_paths_plugin",
+                        "status_code": response.status_code,
+                        "details": response.text,
+                        "target_url": submit_url
+                    },
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+            
+            # Step 2: Extract job_id from response
+            try:
+                response_data = response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f'Failed to parse JSON response: {str(e)}')
+                return Response(
+                    {
+                        "status": "error",
+                        "message": "Invalid JSON response from critical_paths_plugin",
+                        "details": response.text
+                    },
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+            
+            job_id = response_data.get('task_id')
+            
+            if not job_id:
+                logger.error('No task_id returned from critical_paths_plugin')
+                return Response(
+                    {
+                        "status": "error",
+                        "message": "No task_id returned from critical_paths_plugin",
+                        "response": response_data
+                    },
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+            
+            logger.info(f'Test job submitted with task_id: {job_id}')
+            
+            # Step 3: Poll job-result endpoint with exponential backoff
+            poll_interval = 0.1  # Start with 100ms
+            max_interval = 1.0    # Cap at 1 second
+            
+            while True:
+                elapsed = time.time() - start_time
+                
+                if elapsed >= timeout_seconds:
+                    logger.warning(f'Heartbeat check timed out after {elapsed:.2f} seconds')
+                    return Response(
+                        {
+                            "status": "timeout",
+                            "message": f"Job did not complete within {timeout_seconds} seconds",
+                            "task_id": job_id,
+                            "elapsed_seconds": elapsed,
+                            "target_url": host_url
+                        },
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE
+                    )
+                
+                # Check job status
+                result_url = f'{host_url}/api/job-result/{job_id}/'
+                logger.debug(f'Polling job result at {result_url}')
+                
+                try:
+                    result_response = requests.get(
+                        result_url,
+                        headers=headers,
+                        timeout=min(timeout_seconds - elapsed, 2)  # Don't let individual request exceed remaining time
+                    )
+                except requests.exceptions.RequestException as e:
+                    logger.error(f'Failed to poll job result: {str(e)}')
+                    return Response(
+                        {
+                            "status": "error",
+                            "message": "Failed to poll job-result endpoint",
+                            "task_id": job_id,
+                            "details": str(e),
+                            "target_url": result_url
+                        },
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE
+                    )
+                
+                if result_response.status_code == 200:
+                    try:
+                        result_data = result_response.json()
+                    except json.JSONDecodeError:
+                        logger.warning('Failed to parse job result JSON, continuing to poll')
+                        time.sleep(poll_interval)
+                        poll_interval = min(poll_interval * 2, max_interval)
+                        continue
+                    
+                    job_status = result_data.get('status')
+                    
+                    logger.debug(f'Job status: {job_status}')
+                    
+                    if job_status == 'SUCCESS':
+                        elapsed = time.time() - start_time
+                        logger.info(f'Heartbeat check successful in {elapsed:.2f} seconds')
+                        return Response(
+                            {
+                                "status": "healthy",
+                                "message": "Critical path API is functioning correctly",
+                                "task_id": job_id,
+                                "elapsed_seconds": round(elapsed, 2),
+                                "target_url": host_url
+                            },
+                            status=status.HTTP_200_OK
+                        )
+                    elif job_status == 'FAILURE':
+                        logger.error(f'Test job failed: {result_data}')
+                        return Response(
+                            {
+                                "status": "error",
+                                "message": "Test job failed",
+                                "task_id": job_id,
+                                "details": result_data,
+                                "target_url": host_url
+                            },
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE
+                        )
+                    # Job is still pending, continue polling
+                
+                # Wait before next poll with exponential backoff
+                time.sleep(poll_interval)
+                poll_interval = min(poll_interval * 2, max_interval)
+                
+        except Exception as e:
+            logger.error(f'Heartbeat check failed with exception: {str(e)}')
+            import traceback
+            logger.error(traceback.format_exc())
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Heartbeat check encountered an error",
+                    "details": str(e),
+                    "target_url": host_url
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
