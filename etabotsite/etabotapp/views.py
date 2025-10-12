@@ -829,51 +829,51 @@ class CeleryCriticalPathHeartbeatView(APIView):
             logger.debug('Authorization header added to requests')
         
         test_payload = {
-  "final_nodes": ["SDEPM-24"],
-  "start_date_field_name": "customfield_10208",
-  "slack_tolerance_days": 7,
-  "issues": [
-    {
-    "key": "SDEPM-24",
-    
-      "fields": {
-        "summary": "Deployment to Production",
-        "customfield_10208": "2025-04-25",
-        "issuelinks": [
-          {
-            "id": "12761",
-            "self": "https://etabot.atlassian.net/rest/api/3/issueLink/12761",
-            "type": {
-              "id": "10000",
-              "name": "Blocks",
-              "inward": "is blocked by",
-              "outward": "blocks",
-              "self": "https://etabot.atlassian.net/rest/api/3/issueLinkType/10000"
-            },
-          }
-        ],
-        "issuetype": {"name": "Task"},
-        "duedate": "2025-04-29",
-        "assignee": {"displayName":"assignee_test", "accountId": "test"},
-        "key": "SDEPM-24",
-        "status": {
-          "self": "https://etabot.atlassian.net/rest/api/3/status/10128",
-          "name": "To Do",
-          "id": "10128",
-          "statusCategory": {
-            "id": 2,
-            "key": "new",
-            "colorName": "blue-gray",
-            "name": "To Do"
-          }
-        }
-      }
-    }
-  ]
-}
+            "final_nodes": ["SDEPM-24"],
+            "start_date_field_name": "customfield_10208",
+            "slack_tolerance_days": 7,
+            "issues": [
+                {
+                "key": "SDEPM-24",
+                
+                "fields": {
+                    "summary": "Deployment to Production",
+                    "customfield_10208": "2025-04-25",
+                    "issuelinks": [
+                    {
+                        "id": "12761",
+                        "self": "https://etabot.atlassian.net/rest/api/3/issueLink/12761",
+                        "type": {
+                        "id": "10000",
+                        "name": "Blocks",
+                        "inward": "is blocked by",
+                        "outward": "blocks",
+                        "self": "https://etabot.atlassian.net/rest/api/3/issueLinkType/10000"
+                        },
+                    }
+                    ],
+                    "issuetype": {"name": "Task"},
+                    "duedate": "2025-04-29",
+                    "assignee": {"displayName":"assignee_test", "accountId": "test"},
+                    "key": "SDEPM-24",
+                    "status": {
+                    "self": "https://etabot.atlassian.net/rest/api/3/status/10128",
+                    "name": "To Do",
+                    "id": "10128",
+                    "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "colorName": "blue-gray",
+                        "name": "To Do"
+                    }
+                    }
+                }
+                }
+            ]
+            }
 
         
-        timeout_seconds = 5
+        timeout_seconds = 30
         start_time = time.time()
         
         try:
@@ -944,8 +944,8 @@ class CeleryCriticalPathHeartbeatView(APIView):
             logger.info(f'Test job submitted with task_id: {job_id}')
             
             # Step 3: Poll job-result endpoint with exponential backoff
-            poll_interval = 0.1  # Start with 100ms
-            max_interval = 1.0    # Cap at 1 second
+            poll_interval = 1.0  # Start with 100ms
+            max_interval = 16.0
             
             while True:
                 elapsed = time.time() - start_time
