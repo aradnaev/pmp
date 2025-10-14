@@ -778,9 +778,7 @@ class CeleryTaskResultView(APIView):
         active = i.active() or {}
         # Show tasks that have been claimed by workers
         reserved = i.reserved() or {}
-        # Show the items that have an ETA or are scheduled for later processing
-        scheduled = i.scheduled() or {}
-        total = sum(len(v) for v in reserved.values()) + sum(len(v) for v in scheduled.values()) + sum(len(v) for v in active.values())
+        total = sum(len(v) for v in reserved.values()) + sum(len(v) for v in active.values())
 
         response_dict = {
             'task_id': task_id,
