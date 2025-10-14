@@ -778,6 +778,7 @@ class CeleryTaskResultView(APIView):
         active = i.active() or {}
         # Show tasks that have been claimed by workers
         reserved = i.reserved() or {}
+
         total = sum(len(v) for v in reserved.values()) + sum(len(v) for v in active.values())
 
         response_dict = {
