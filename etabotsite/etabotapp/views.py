@@ -772,9 +772,20 @@ class CeleryTaskResultView(APIView):
         logger.info('task status: {}'.format(
             result.status))
 
+        i = celery.control.inspect()
+
+        # Show tasks that are currently active.
+        active = i.active() or {}
+        # Show tasks that have been claimed by workers
+        reserved = i.reserved() or {}
+        # Show the items that have an ETA or are scheduled for later processing
+        scheduled = i.scheduled() or {}
+        total = sum(len(v) for v in reserved.values()) + sum(len(v) for v in scheduled.values()) + sum(len(v) for v in active.values())
+
         response_dict = {
             'task_id': task_id,
             'status': celery.AsyncResult(task_id).status,
+            'number_of_jobs_in_queue': total
         }
         if result.ready():
             # Handle case where result might be an exception
@@ -971,7 +982,7 @@ class CeleryCriticalPathHeartbeatView(APIView):
                     result_response = requests.get(
                         result_url,
                         headers=headers,
-                        timeout=min(timeout_seconds - elapsed, 2)  # Don't let individual request exceed remaining time
+                        timeout=min(timeout_seconds - elapsed, 10)  # Don't let individual request exceed remaining time
                     )
                 except requests.exceptions.RequestException as e:
                     logger.error(f'Failed to poll job result: {str(e)}')
@@ -998,7 +1009,7 @@ class CeleryCriticalPathHeartbeatView(APIView):
                     job_status = result_data.get('status')
                     
                     logger.debug(f'Job status: {job_status}')
-                    
+
                     if job_status == 'SUCCESS':
                         elapsed = time.time() - start_time
                         logger.info(f'Heartbeat check successful in {elapsed:.2f} seconds')
