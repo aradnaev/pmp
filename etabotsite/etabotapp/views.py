@@ -772,19 +772,9 @@ class CeleryTaskResultView(APIView):
         logger.info('task status: {}'.format(
             result.status))
 
-        i = celery.control.inspect()
-
-        # Show tasks that are currently active.
-        active = i.active() or {}
-        # Show tasks that have been claimed by workers
-        reserved = i.reserved() or {}
-
-        total = sum(len(v) for v in reserved.values()) + sum(len(v) for v in active.values())
-
         response_dict = {
             'task_id': task_id,
-            'status': celery.AsyncResult(task_id).status,
-            'number_of_jobs_in_queue': total
+            'status': celery.AsyncResult(task_id).status
         }
         if result.ready():
             # Handle case where result might be an exception
