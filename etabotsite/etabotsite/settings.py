@@ -424,6 +424,13 @@ logging.info('TEST_TMS_DATA username@endpoint: {}@{}'.format(
 if TEST_TMS_DATA['username'] == '':
     logging.warning('test_tms_data username is an empty string. Some tests will not run.')
 
+# Heartbeat monitoring authentication token
+HEARTBEAT_AUTH_TOKEN = custom_settings.get('HEARTBEAT_AUTH_TOKEN', None)
+if HEARTBEAT_AUTH_TOKEN:
+    logging.info('HEARTBEAT_AUTH_TOKEN loaded from custom_settings')
+else:
+    logging.warning('HEARTBEAT_AUTH_TOKEN not found in custom_settings. Heartbeat endpoint will make unauthenticated requests.')
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
