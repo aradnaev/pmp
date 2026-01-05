@@ -1,9 +1,12 @@
+import logging
 from rest_framework import permissions
 from rest_framework.exceptions import AuthenticationFailed
 from .models import Project
 from .models import TMS
 from django.contrib.auth.models import User
 from .forge_auth import validate_forge_invocation_token, extract_fit_token_from_request
+
+logger = logging.getLogger('django')
 
 
 class IsOwner(permissions.BasePermission):
@@ -77,9 +80,15 @@ class ForgeInvocationTokenPermission(permissions.BasePermission):
         invocation_token = extract_fit_token_from_request(request)
         
         if not invocation_token:
+            # Log available headers for debugging
+            auth_headers = {
+                'HTTP_AUTHORIZATION': request.META.get('HTTP_AUTHORIZATION', 'NOT_FOUND'),
+                'Authorization': request.META.get('Authorization', 'NOT_FOUND'),
+            }
+            logger.warning(f'No FIT token found. Available auth headers: {auth_headers}, request {request}')
             raise AuthenticationFailed(
                 'Missing Forge Invocation Token. '
-                'Please provide a valid token in the Authorization header.'
+                'Please provide a valid token in the Authorization header as: "Authorization: Bearer <token>".'
             )
         
         # Validate the token
@@ -87,8 +96,10 @@ class ForgeInvocationTokenPermission(permissions.BasePermission):
             payload = validate_forge_invocation_token(invocation_token)
             # Store validated payload in request for potential use in views
             request.forge_token_payload = payload
+            logger.debug('FIT token validated successfully')
             return True
         except AuthenticationFailed:
             raise
         except Exception as e:
+            logger.error(f'Unexpected error during FIT validation in permission class: {e}', exc_info=True)
             raise AuthenticationFailed(f'Token validation error: {str(e)}')

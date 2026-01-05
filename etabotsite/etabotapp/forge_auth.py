@@ -118,6 +118,14 @@ def validate_forge_invocation_token(invocation_token: str, app_id: Optional[str]
     if not invocation_token:
         raise AuthenticationFailed('No authentication token provided')
     
+    # Validate JWT format (should have 3 segments separated by dots)
+    token_parts = invocation_token.strip().split('.')
+    if len(token_parts) != 3:
+        logger.error(f'Invalid JWT format: expected 3 segments, got {len(token_parts)}. Token length: {len(invocation_token)}')
+        raise AuthenticationFailed(
+            'Invalid token format. Expected a JWT token with format: header.payload.signature'
+        )
+    
     # Get app_id from settings if not provided
     if app_id is None:
         app_id = getattr(settings, 'FORGE_APP_ID', None)
@@ -126,7 +134,16 @@ def validate_forge_invocation_token(invocation_token: str, app_id: Optional[str]
     
     try:
         # Decode JWT header to get key ID (kid)
-        unverified_header = jwt.get_unverified_header(invocation_token)
+        try:
+            unverified_header = jwt.get_unverified_header(invocation_token)
+        except jwt.DecodeError as e:
+            if 'Not enough segments' in str(e):
+                raise AuthenticationFailed(
+                    'Invalid token format: token must be a valid JWT with format header.payload.signature. '
+                    'Please ensure the Authorization header contains a complete Forge Invocation Token.'
+                )
+            raise AuthenticationFailed(f'Token header decode error: {str(e)}')
+        
         kid = unverified_header.get('kid')
         
         if not kid:
@@ -187,14 +204,30 @@ def extract_fit_token_from_request(request) -> Optional[str]:
     Returns:
         Token string or None if not found
     """
-    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    # Try multiple header formats that Django/DRF might use
+    auth_header = (
+        request.META.get('HTTP_AUTHORIZATION', '') or
+        request.META.get('Authorization', '') or
+        getattr(request, 'META', {}).get('HTTP_AUTHORIZATION', '')
+    )
     
     if not auth_header:
+        logger.debug('No Authorization header found in request')
         return None
     
     # Support both "Bearer <token>" and just "<token>" formats
-    if auth_header.startswith('Bearer '):
-        return auth_header[7:].strip()
+    # Also handle case-insensitive "bearer"
+    auth_header_lower = auth_header.lower()
+    if auth_header_lower.startswith('bearer '):
+        token = auth_header[7:].strip()
     else:
-        return auth_header.strip()
+        token = auth_header.strip()
+    
+    # Log token info for debugging (but not the full token for security)
+    if token:
+        logger.debug(f'Extracted token from Authorization header. Token length: {len(token)}, starts with: {token[:10]}...')
+    else:
+        logger.warning('Authorization header present but token is empty')
+    
+    return token if token else None
 
