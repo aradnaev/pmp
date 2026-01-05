@@ -35,6 +35,7 @@ import datetime
 import pytz
 import hashlib
 import etabotapp.TMSlib.Atlassian_API as Atlassian_API
+from .forge_token_validator import validate_forge_request, ForgeTokenValidationError
 
 
 # import oauth_support
@@ -500,6 +501,20 @@ class CriticalPathsViewJIRAplugin(APIView):
         """Generate critical path for a given JQL and explicit list of JIRA tasks rather than TMS data source.
 
         """
+        # Validate Forge Invocation Token
+        try:
+            forge_token_payload = validate_forge_request(request)
+            logger.debug(f'FIT validated for CriticalPathsViewJIRAplugin: app_id={forge_token_payload.get("app", {}).get("id")}')
+        except ForgeTokenValidationError as e:
+            logger.warning(f'FIT validation failed for CriticalPathsViewJIRAplugin: {str(e)}')
+            return Response(
+                {
+                    "error": "Authentication failed",
+                    "message": str(e)
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         prep_celery_task_id = str(hashlib.sha256(request.body).hexdigest())
 
         logger.info(f'CriticalPathsViewJIRAplugin started prep_celery_task_id={prep_celery_task_id}.')
@@ -726,6 +741,20 @@ class CeleryTaskStatusView(APIView):
         """
         Get celery task status for a particular celery task id.
         """
+        # Validate Forge Invocation Token
+        try:
+            forge_token_payload = validate_forge_request(request)
+            logger.debug(f'FIT validated for CeleryTaskStatusView: app_id={forge_token_payload.get("app", {}).get("id")}')
+        except ForgeTokenValidationError as e:
+            logger.warning(f'FIT validation failed for CeleryTaskStatusView: {str(e)}')
+            return Response(
+                {
+                    "error": "Authentication failed",
+                    "message": str(e)
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
         logger.debug('CeleryTaskStatusView GET started')
         task_id = id
@@ -757,6 +786,20 @@ class CeleryTaskResultView(APIView):
         """
         Get celery task status for a particular celery task id.
         """
+        # Validate Forge Invocation Token
+        try:
+            forge_token_payload = validate_forge_request(request)
+            logger.debug(f'FIT validated for CeleryTaskResultView: app_id={forge_token_payload.get("app", {}).get("id")}')
+        except ForgeTokenValidationError as e:
+            logger.warning(f'FIT validation failed for CeleryTaskResultView: {str(e)}')
+            return Response(
+                {
+                    "error": "Authentication failed",
+                    "message": str(e)
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
         # todo: create decorator to check for task id instead of copy paste check
         logger.debug('CeleryTaskStatusView GET started')
