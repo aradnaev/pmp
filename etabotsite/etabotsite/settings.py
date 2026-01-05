@@ -63,7 +63,7 @@ if 'local_host_url' in custom_settings:
 if 'prod_host_url' in custom_settings:
     prod_host_url = custom_settings['prod_host_url']
 
-
+FORGE_APP_ID = custom_settings.get('FORGE_APP_ID', None)
 CUSTOM_SETTINGS = custom_settings
 PROD_HOST_URL = prod_host_url
 
