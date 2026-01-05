@@ -74,10 +74,17 @@ For local development you can setup a postgres database in a few minutes using d
 ```docker pull postgres```
 
 
-```docker run --name postgres -e POSTGRES_PASSWORD=password -p 5432:5432 -v ~/dir/:/var/lib/postgresql/data -d postgres```
+docker run --name my-postgres-db \
+    -e POSTGRES_USER=myuser \
+    -e POSTGRES_PASSWORD=mypassword \
+    -p 5432:5432 \
+    -v pg_data:/var/lib/postgresql/data \
+    -d postgres
+
 this will create root account with:
 username: postgres
 password: password
+
 
 ```docker ps```
 

@@ -44,5 +44,7 @@
         "DJANGO_EMAIL_TOKEN_EXPIRATION_PERIOD_S":86400     
     },
     "_HEARTBEAT_AUTH_TOKEN_comment": "Optional: Django REST Framework token for heartbeat monitoring authentication. Generate using: python manage.py drf_create_token <username>",
-    "HEARTBEAT_AUTH_TOKEN": ""
+    "HEARTBEAT_AUTH_TOKEN": "",
+    "_FORGE_APP_ID_comment": "Required for Forge Remote API: Your Atlassian Forge Application ID (ARI format: ari:cloud:ecosystem::app/...). This is used to validate Forge Invocation Tokens (FIT) for remote endpoints.",
+    "FORGE_APP_ID": ""
 }

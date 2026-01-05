@@ -16,7 +16,7 @@ from .models import OAuth1Token, OAuth2Token, OAuth2CodeRequest
 from .models import atlassian_redirect_uri
 from .models import TMS, Project
 from .models import oauth
-from .permissions import IsOwnerOrReadOnly, IsOwner
+from .permissions import IsOwnerOrReadOnly, IsOwner, ForgeInvocationTokenPermission
 from etabotapp.TMSlib.JIRA_API import JIRA_wrapper
 from .exceptions import TaskFailedError
 import etabotapp.TMSlib.TMS as TMSlib
@@ -495,6 +495,11 @@ class CriticalPathsView(APIView):
 
 
 class CriticalPathsViewJIRAplugin(APIView):
+    """
+    API endpoint for generating critical paths from JIRA plugin.
+    Requires valid Forge Invocation Token (FIT) for authentication.
+    """
+    permission_classes = [ForgeInvocationTokenPermission]
 
     def post(self, request):
         """Generate critical path for a given JQL and explicit list of JIRA tasks rather than TMS data source.
@@ -721,6 +726,11 @@ class UserCommunicationView(APIView):
 
 
 class CeleryTaskStatusView(APIView):
+    """
+    API endpoint for getting celery task status.
+    Requires valid Forge Invocation Token (FIT) for authentication.
+    """
+    permission_classes = [ForgeInvocationTokenPermission]
 
     def get(self, request, id):
         """
@@ -752,6 +762,11 @@ class CeleryTaskStatusView(APIView):
 
 
 class CeleryTaskResultView(APIView):
+    """
+    API endpoint for getting celery task result.
+    Requires valid Forge Invocation Token (FIT) for authentication.
+    """
+    permission_classes = [ForgeInvocationTokenPermission]
 
     def get(self, request, id):
         """

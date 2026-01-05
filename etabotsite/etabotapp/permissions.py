@@ -1,7 +1,9 @@
 from rest_framework import permissions
+from rest_framework.exceptions import AuthenticationFailed
 from .models import Project
 from .models import TMS
 from django.contrib.auth.models import User
+from .forge_auth import validate_forge_invocation_token, extract_fit_token_from_request
 
 
 class IsOwner(permissions.BasePermission):
@@ -52,3 +54,41 @@ class ListAdminOnly(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return view.action != 'list' or request.user and request.user.is_staff
+
+
+class ForgeInvocationTokenPermission(permissions.BasePermission):
+    """
+    Permission class to validate Forge Invocation Token (FIT) from Authorization header.
+    
+    This validates that requests contain a valid FIT token as required by
+    Atlassian Forge Remote API security requirements.
+    
+    Reference: https://developer.atlassian.com/platform/forge/remote/essentials/#verifying-remote-requests
+    """
+    
+    def has_permission(self, request, view):
+        """
+        Validate FIT token from Authorization header.
+        
+        Returns:
+            True if token is valid, raises AuthenticationFailed otherwise
+        """
+        # Extract token from request
+        invocation_token = extract_fit_token_from_request(request)
+        
+        if not invocation_token:
+            raise AuthenticationFailed(
+                'Missing Forge Invocation Token. '
+                'Please provide a valid token in the Authorization header.'
+            )
+        
+        # Validate the token
+        try:
+            payload = validate_forge_invocation_token(invocation_token)
+            # Store validated payload in request for potential use in views
+            request.forge_token_payload = payload
+            return True
+        except AuthenticationFailed:
+            raise
+        except Exception as e:
+            raise AuthenticationFailed(f'Token validation error: {str(e)}')
