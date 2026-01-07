@@ -173,7 +173,7 @@ def extract_bearer_token(authorization_header: Optional[str]) -> Optional[str]:
     """
     if not authorization_header:
         return None
-    logger.info(f'Authorization header: {authorization_header}')
+
     # Check if it's a Bearer token
     if authorization_header.startswith('Bearer '):
         return authorization_header[7:].strip()
