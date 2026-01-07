@@ -10,7 +10,7 @@ ENV PROJECT_ROOT /usr/src/app
 ADD . /usr/src/app
 COPY celery/start.sh /start.sh
 
-RUN pip install -r /usr/src/app/requirements.txt
+RUN pip install --upgrade pip && pip install -r /usr/src/app/requirements.txt
 
 # EXPOSE port 8000 to allow communication to/from server
 EXPOSE 8000

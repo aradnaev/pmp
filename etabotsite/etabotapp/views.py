@@ -35,6 +35,7 @@ import datetime
 import pytz
 import hashlib
 import etabotapp.TMSlib.Atlassian_API as Atlassian_API
+from .forge_token_validator import ForgeInvocationTokenAuthentication
 
 
 # import oauth_support
@@ -495,11 +496,19 @@ class CriticalPathsView(APIView):
 
 
 class CriticalPathsViewJIRAplugin(APIView):
+    authentication_classes = [ForgeInvocationTokenAuthentication]
+    permission_classes = []
 
     def post(self, request):
         """Generate critical path for a given JQL and explicit list of JIRA tasks rather than TMS data source.
 
         """
+        # Token is validated by ForgeInvocationTokenAuthentication
+        # Access payload via request.forge_token_payload
+        forge_token_payload = getattr(request, 'forge_token_payload', None)
+        if forge_token_payload:
+            logger.debug(f'FIT validated for CriticalPathsViewJIRAplugin: app_id={forge_token_payload.get("app", {}).get("id")}')
+        
         prep_celery_task_id = str(hashlib.sha256(request.body).hexdigest())
 
         logger.info(f'CriticalPathsViewJIRAplugin started prep_celery_task_id={prep_celery_task_id}.')
@@ -565,10 +574,20 @@ class CriticalPathsViewJIRAplugin(APIView):
             )
 
         try:
+            # Get admin user from custom_settings
+            custom_settings = getattr(settings, "CUSTOM_SETTINGS", {})
+            admin_username = custom_settings.get('ADMIN_USERNAME')
+            if not admin_username:
+                raise ValueError("ADMIN_USERNAME not found in custom_settings")
+            try:
+                admin_user = User.objects.get(username=admin_username)
+            except User.DoesNotExist:
+                raise ValueError(f"User with username '{admin_username}' (ADMIN_USERNAME) not found in database")
+            
             result = send_celery_task_with_tracking(
                 task_path,
                 (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params),
-                owner=self.request.user,
+                owner=admin_user,
                 compress=True)
             celery_task_id = result.task_id
             json_response = {'task_id': celery_task_id}
@@ -721,11 +740,19 @@ class UserCommunicationView(APIView):
 
 
 class CeleryTaskStatusView(APIView):
+    authentication_classes = [ForgeInvocationTokenAuthentication]
+    permission_classes = []
 
     def get(self, request, id):
         """
         Get celery task status for a particular celery task id.
         """
+        # Token is validated by ForgeInvocationTokenAuthentication
+        # Access payload via request.forge_token_payload
+        forge_token_payload = getattr(request, 'forge_token_payload', None)
+        if forge_token_payload:
+            logger.debug(f'FIT validated for CeleryTaskStatusView: app_id={forge_token_payload.get("app", {}).get("id")}')
+        
         # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
         logger.debug('CeleryTaskStatusView GET started')
         task_id = id
@@ -752,11 +779,19 @@ class CeleryTaskStatusView(APIView):
 
 
 class CeleryTaskResultView(APIView):
+    authentication_classes = [ForgeInvocationTokenAuthentication]
+    permission_classes = []
 
     def get(self, request, id):
         """
         Get celery task status for a particular celery task id.
         """
+        # Token is validated by ForgeInvocationTokenAuthentication
+        # Access payload via request.forge_token_payload
+        forge_token_payload = getattr(request, 'forge_token_payload', None)
+        if forge_token_payload:
+            logger.debug(f'FIT validated for CeleryTaskResultView: app_id={forge_token_payload.get("app", {}).get("id")}')
+        
         # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
         # todo: create decorator to check for task id instead of copy paste check
         logger.debug('CeleryTaskStatusView GET started')

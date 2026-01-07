@@ -431,6 +431,15 @@ if HEARTBEAT_AUTH_TOKEN:
 else:
     logging.warning('HEARTBEAT_AUTH_TOKEN not found in custom_settings. Heartbeat endpoint will make unauthenticated requests.')
 
+# Forge application ID for validating Forge Invocation Tokens
+# This should match the app ID in your Forge manifest.yml file
+# Example: ari:cloud:ecosystem::app/77334c21-3dd0-474f-a53f-28b4eeee5a71
+FORGE_APP_ID = custom_settings.get('FORGE_APP_ID', None)
+if FORGE_APP_ID:
+    logging.info('FORGE_APP_ID loaded from custom_settings')
+else:
+    logging.warning('FORGE_APP_ID not found in custom_settings. Forge Remote endpoints will not validate tokens.')
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
