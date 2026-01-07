@@ -574,10 +574,20 @@ class CriticalPathsViewJIRAplugin(APIView):
             )
 
         try:
+            # Get admin user from custom_settings
+            custom_settings = getattr(settings, "CUSTOM_SETTINGS", {})
+            admin_username = custom_settings.get('ADMIN_USERNAME')
+            if not admin_username:
+                raise ValueError("ADMIN_USERNAME not found in custom_settings")
+            try:
+                admin_user = User.objects.get(username=admin_username)
+            except User.DoesNotExist:
+                raise ValueError(f"User with username '{admin_username}' (ADMIN_USERNAME) not found in database")
+            
             result = send_celery_task_with_tracking(
                 task_path,
                 (issues_dict, start_date_field_name, eta_date_field_name, final_nodes, params),
-                owner=None,
+                owner=admin_user,
                 compress=True)
             celery_task_id = result.task_id
             json_response = {'task_id': celery_task_id}
