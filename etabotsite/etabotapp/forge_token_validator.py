@@ -6,13 +6,15 @@ https://developer.atlassian.com/platform/forge/remote/essentials/#verifying-remo
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from jose import jwt, jwk
 from jose.constants import ALGORITHMS
 import requests
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 
 logger = logging.getLogger('django')
 
@@ -212,6 +214,80 @@ def validate_forge_request(request) -> Dict[str, Any]:
     
     # Validate the token
     return validate_forge_invocation_token(token)
+
+
+class ForgeInvocationTokenAuthentication(BaseAuthentication):
+    """
+    Django REST Framework authentication class for Forge Invocation Tokens.
+    
+    Validates JWT tokens from Atlassian Forge Remote requests and attaches
+    the decoded payload to the request object.
+    
+    Usage in views:
+        class MyView(APIView):
+            authentication_classes = [ForgeInvocationTokenAuthentication]
+            permission_classes = []
+            
+            def post(self, request):
+                # Access the token payload
+                app_id = request.forge_token_payload.get('app', {}).get('id')
+                installation_id = request.forge_token_payload.get('app', {}).get('installationId')
+                ...
+    """
+    
+    def authenticate(self, request) -> Optional[Tuple[None, Dict[str, Any]]]:
+        """
+        Authenticate the request using Forge Invocation Token.
+        
+        Args:
+            request: Django REST Framework request object.
+        
+        Returns:
+            Tuple of (user, token_payload) if authentication succeeds.
+            None if no token is provided (allows other auth methods).
+            
+        Raises:
+            AuthenticationFailed: If token is provided but validation fails.
+        """
+        # Extract Authorization header
+        auth_header = request.META.get('HTTP_AUTHORIZATION') or request.META.get('Authorization')
+        
+        # If no Authorization header, return None to allow other auth methods
+        if not auth_header:
+            return None
+        
+        # Extract bearer token
+        token = extract_bearer_token(auth_header)
+        
+        if not token:
+            # If Authorization header exists but is not Bearer, raise error
+            raise AuthenticationFailed(
+                'Authorization header must be a Bearer token'
+            )
+        
+        try:
+            # Validate the token
+            payload = validate_forge_invocation_token(token)
+            
+            # Attach payload to request for easy access in views
+            request.forge_token_payload = payload
+            
+            # Return (user, token_payload) tuple
+            # user is None since Forge tokens don't map to Django users
+            return (None, payload)
+            
+        except ForgeTokenValidationError as e:
+            logger.warning(f'FIT validation failed: {str(e)}')
+            raise AuthenticationFailed(
+                f'Forge Invocation Token validation failed: {str(e)}'
+            )
+    
+    def authenticate_header(self, request) -> str:
+        """
+        Return a string to be used as the value of the `WWW-Authenticate`
+        header in a `401 Unauthenticated` response.
+        """
+        return 'Bearer'
 
 
 def forge_token_required(view_func):
