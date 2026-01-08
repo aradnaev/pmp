@@ -1,6 +1,6 @@
 amqp==5.3.1
 attrs==20.3.0
-Authlib==1.6.5
+Authlib==1.6.6
 billiard==4.2.1
 boto3==1.17.22
 botocore==1.20.22
